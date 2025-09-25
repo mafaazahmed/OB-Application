@@ -16,7 +16,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
-const allowedOrigins = ['http://localhost:5173']; // Add your frontend URLs
+const allowedOrigins = ['http://localhost:5173', 'https://ob-application.vercel.app']; // Add your frontend URLs
 app.use(cors({
   origin: allowedOrigins,
   optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
