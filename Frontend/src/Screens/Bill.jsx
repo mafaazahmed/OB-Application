@@ -288,7 +288,7 @@ localStorage.setItem("orderId", currentOrderId);
         heightLeft -= pdfHeight;
       }
 
-      pdf.save(`${currentOrderId}.pdf`);
+      pdf.save(`${orderId}.pdf`);
 
       // Now that PDF is saved, reset the form
       const invoice = await generateInvoiceNumber();
