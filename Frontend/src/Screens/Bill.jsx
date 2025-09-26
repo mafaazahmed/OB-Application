@@ -190,49 +190,49 @@ export default function Bill() {
     setQuery("");
   };
 
+  const currentOrderId = orderId.trim().toUpperCase();
+
+  const checkId = async () => {
+    try {
+       console.log(currentOrderId);
+       let response = await axios.post("/bill/checkId", { orderId: currentOrderId });
+
+      if (response.data.success) {
+       if(orderId.toLowerCase() === response.data.orderId.toLowerCase()){
+         alert("Bill already exists with this Order ID");
+         return;
+       }
+      }
+    } catch (error) {
+      alert(error);
+    }
+  };
+
+ useEffect(() => {
+  if (orderId.trim() !== "" && (orderId.length === 4 || orderId.length === 5)) {
+    checkId();
+  }
+}, [orderId]);
+
+
   const downloadPDF = async () => {
     if (products.length === 0) {
       alert("No products added to generate bill");
       return;
     }
-    const currentOrderId = orderId.trim(); // Capture and trim orderId
-const savedOrderId = localStorage.getItem("orderId");
-
-if (currentOrderId === "") {
-  alert("Please enter Order ID");
-  return;
-}
-
-// Compare case-insensitively
-if (savedOrderId && savedOrderId.toLowerCase() === currentOrderId.toLowerCase()) {
-  alert("Bill already exists with this Order ID");
-  return;
-}
-
-localStorage.setItem("orderId", currentOrderId);
-
-
-    // let checkId = await axios.post("/bill/checkId", { orderId });
-
-    // console.log(checkId);
-
-    // // Axios wraps data under `response.data`, so:
-    // if (checkId.data.success) {
-    //   alert("Bill already exists with this Order ID");
-    //   return;
-    // }
     try {
       const bill = {
         id: id,
         products: products,
         deliveryCharge: discount,
         total: total,
-        order_id: orderId, // ✅ Add order_id to the bill object
+        order_id: orderId.toUpperCase(), // ✅ Add order_id to the bill object
         Date: dateAndTime,
       };
 
       //console.log(bill);
       let response = await axios.post("/bill/createBill", bill);
+      console.log(response);
     } catch (error) {
       console.log(error);
     }
@@ -288,7 +288,7 @@ localStorage.setItem("orderId", currentOrderId);
         heightLeft -= pdfHeight;
       }
 
-      pdf.save(`${orderId}.pdf`);
+      pdf.save(`${currentOrderId}.pdf`);
 
       // Now that PDF is saved, reset the form
       const invoice = await generateInvoiceNumber();
