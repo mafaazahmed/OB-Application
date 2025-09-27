@@ -154,27 +154,34 @@ router.put('/update/:id', async (req, res) => {
 //check for the existing order_id
 router.post('/checkId', async (req, res) => {
   let id = req.body.orderId;
+  console.log(req.body)
   console.log("Checking orderId:", id);
 
   try {
-    let order = await Bill.findOne({ order_id :  id });
+    let order = await Bill.findOne({ order_id: id }); // 👈 confirm your schema field
 
     if (order) {
       return res.status(200).json({
         success: true,
         message: 'Bill already exists with this Order ID',
-        o
+        orderId: order.order_id   // 👈 send this back to frontend
       });
     }
+
+    // ✅ Always send a response even if not found
+    return res.status(200).json({
+      success: false,
+      message: 'No bill found with this Order ID'
+    });
 
   } catch (e) {
     console.error('Error checking order ID:', e);
     return res.status(500).json({ 
       success: false, 
       message: 'Error checking order ID in database',
+      error: e.message
     });
   }
 });
-
 
 module.exports = router;

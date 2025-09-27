@@ -190,7 +190,9 @@ export default function Bill() {
     setQuery("");
   };
 
-  const currentOrderId = orderId.trim().toUpperCase();
+  // const currentOrderId = orderId.trim().toUpperCase();
+  localStorage.setItem('order_id', orderId);
+  const currentOrderId = localStorage.getItem('order_id');
 
   const checkId = async () => {
     try {
