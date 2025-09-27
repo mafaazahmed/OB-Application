@@ -153,7 +153,7 @@ router.put('/update/:id', async (req, res) => {
 
 //check for the existing order_id
 router.post('/checkId', async (req, res) => {
-  let id = req.body.orderId;
+  let id = req.body.orderId.toUpperCase().trim();
   console.log(req.body)
   console.log("Checking orderId:", id);
 
