@@ -201,6 +201,7 @@ export default function Bill() {
 
       if (response.data.success) {
        if(orderId.toLowerCase() === response.data.orderId.toLowerCase()){
+         setOrderId("");
          alert("Bill already exists with this Order ID");
          return;
        }
