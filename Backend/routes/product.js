@@ -20,6 +20,7 @@ router.post("/add", async (req, res) => {
       name: req.body.name,
       price: req.body.price,
       category: req.body.category,
+      profit : req.body.profit
     });
     res.json({ success: true });
   } catch (error) {

@@ -29,6 +29,12 @@ const billSchema = new Schema ({
         type : Number,
         required : true 
         }
+                ,
+                profit: {
+                    type: Number,
+                    required: false,
+                    default: 0
+                }
     }],
     deliveryCharge : {
         type : Number,
@@ -38,6 +44,22 @@ const billSchema = new Schema ({
         type : Number,
         required : true
     },
+    profit : {
+        type : Number,
+        required : true,
+        default : 0
+    },
+    profitByCategory: [{
+        category: {
+            type: String,
+            required: true
+        },
+        amount: {
+            type: Number,
+            required: true,
+            default: 0
+        }
+    }],
     Date : {
         type : String,
         required : true

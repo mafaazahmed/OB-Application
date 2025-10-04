@@ -10,6 +10,7 @@ export default function Addproduct() {
     name: "",
     price: 0,
     category: "vegetable",
+    profit: 0,
   });
 
   const [error, setError] = useState(""); // For validation alert
@@ -28,7 +29,7 @@ export default function Addproduct() {
     try {
       let res = await axios.post("/product/add", product);
       console.log(res);
-      setProduct({ name: "", price: 0, category: "shoe" });
+      setProduct({ name: "", price: 0, category: "shoe", profit: 0 });
       navigate("/product");
     } catch (err) {
       console.error(err);
@@ -37,7 +38,9 @@ export default function Addproduct() {
   };
 
   const onChange = (e) => {
-    setProduct({ ...product, [e.target.name]: e.target.value });
+    const { name, value, type } = e.target;
+    const parsed = type === "number" ? Number(value) : value;
+    setProduct({ ...product, [name]: parsed });
   };
 
   return (
@@ -129,9 +132,9 @@ export default function Addproduct() {
                       }}
                     >
                       <option value={"vegetable"}>vegetable</option>
-                      <option value="meat">meat</option>
-                      <option value="fruit">fruit</option>
-                      <option value="herb">herb</option>
+                      <option value="chicken">chicken</option>
+                      <option value="beef">beef</option>
+                      <option value="mutton">mutton</option>
                       <option value="other">other</option>
                     </select>
                   </div>
@@ -194,12 +197,40 @@ export default function Addproduct() {
                       id="price"
                       name="price"
                       value={product.price}
-                      onChange={(e) =>
-                        setProduct({
-                          ...product,
-                          price: Math.max(0, Number(e.target.value)),
-                        })
-                      }
+                      onChange={onChange}
+                      placeholder="0.00"
+                      style={{
+                        borderRadius: "8px",
+                        border: "1px solid #e2e8f0",
+                        padding: "12px 16px",
+                        fontSize: "0.95rem",
+                      }}
+                    />
+                  </div>
+
+                  <div className="mb-4">
+                    <label
+                      htmlFor="profit"
+                      className="form-label fw-semibold"
+                      style={{
+                        color: "#2d3748",
+                        fontSize: "0.95rem",
+                      }}
+                    >
+                      <i
+                        className="fa-solid fa-coins me-2"
+                        style={{ color: "#22c55e" }}
+                      ></i>
+                      Profit
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      className="form-control"
+                      id="profit"
+                      name="profit"
+                      value={product.profit}
+                      onChange={onChange}
                       placeholder="0.00"
                       style={{
                         borderRadius: "8px",

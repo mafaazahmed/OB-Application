@@ -13,7 +13,12 @@ const productSchema = new Schema ({
     category : {
         type : String,
         required : true
-    }
+    },
+    profit :  {
+        type : Number,
+        required : true,
+        default : 0
+    },
 })
 
 module.exports = mongoose.model("products", productSchema);

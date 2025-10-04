@@ -258,27 +258,14 @@ export default function ViewBills() {
         backgroundColor: '#ffffff'
       });
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.9);
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = pdfWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pdfHeight;
-
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pdfHeight;
-      }
-
-     // pdf.save(`bill_${selectedBill.bill_id}.pdf`);
-      pdf.save(`${selectedBill.order_id}.pdf`);
+      // Save as JPEG image instead of PDF
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const link = document.createElement('a');
+      link.href = imgData;
+      link.download = `${selectedBill.order_id || selectedBill.bill_id}.jpeg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } catch (error) {
       console.error('Error generating PDF:', error);
       alert('Error generating PDF. Please try again.');
@@ -980,10 +967,10 @@ export default function ViewBills() {
         <button className="btn btn-outline-primary" onClick={printInvoice} style={{ borderRadius: '8px', fontWeight: 500, padding: '10px 24px' }}>
           🖨️ Print
         </button>
-        <button className="btn btn-outline-success" onClick={downloadPDF} style={{ borderRadius: '8px', fontWeight: 500, padding: '10px 24px' }}>
-          ⬇️ Download PDF
-        </button>
-        {!isEditing ? (
+    <button className="btn btn-outline-success" onClick={downloadPDF} style={{ borderRadius: '8px', fontWeight: 500, padding: '10px 24px' }}>
+      💾 Save Bill
+    </button>
+        {/* {!isEditing ? (
           <button className="btn btn-outline-warning" onClick={handleStartEdit} style={{ borderRadius: '8px', fontWeight: 500, padding: '10px 24px' }}>
             ✏️ Edit Bill
           </button>
@@ -996,7 +983,7 @@ export default function ViewBills() {
               ✖ Cancel
             </button>
           </>
-        )}
+        )} */}
         <button className="btn btn-outline-warning" onClick={() => {
           const currentStatus = selectedBill.status || 'Pending';
           const newStatus = selectedStatus || currentStatus;

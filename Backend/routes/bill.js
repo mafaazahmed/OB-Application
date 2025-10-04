@@ -20,48 +20,77 @@ router.get('/show', async (req,res) => {
       }
 })
 
-router.post('/createBill', async (req,res) => {
-     let id = req.body.order_id;
-     console.log('Creating bill with ID:', id);
-     try {
-        let data = await Bill.findOne({order_id : id});
-        if(data){
-          console.log('Bill already exists with ID:', id);
-          return res.status(409).json({ 
-            success: false, 
-            message: 'Bill with this ID already exists',
-          });
-        }else{
-          const newBill = await Bill.create({
-            bill_id : req.body.id,
-            order_id : req.body.order_id,
-            products : req.body.products,
-            deliveryCharge : req.body.deliveryCharge,
-            total : req.body.total,
-            Date : req.body.Date
-        });
-        console.log('New bill created successfully:', newBill.bill_id);
-        return res.status(201).json({ 
-          success: true, 
-          message: 'Bill created successfully',
-          data: {
-            billId: newBill.bill_id,
-            order_id : newBill.order_id,
-            total: newBill.total,
-            status: newBill.status,
-            createdAt: new Date().toISOString()
-          }
-        });
-        }
-      } catch (error) {
-        console.error('Error creating bill:', error);
-        return res.status(500).json({ 
-          success: false, 
-          message: 'Error creating bill',
-          error: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
-        });
-      }
-})
+router.post("/createBill", async (req, res) => {
+  try {
+    const {
+      id,
+      order_id,
+      products,
+      deliveryCharge = 0,
+      total,
+      profitByCategory,
+      profit,
+      billDate,
+    } = req.body;
+
+    console.log("Creating bill with ID:", order_id);
+
+    // ✅ Prevent duplicate bills
+    const existingBill = await Bill.findOne({ order_id });
+    if (existingBill) {
+      console.log("Bill already exists with ID:", order_id);
+      return res.status(409).json({
+        success: false,
+        message: "Bill with this ID already exists",
+      });
+    }
+
+    // ✅ Validate required fields
+    if (!id || !order_id || !Array.isArray(products)) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields or invalid data format",
+      });
+    }
+
+    // ✅ Directly save bill from frontend (no calculations)
+    console.log(profit);
+    const newBill = await Bill.create({
+      bill_id: id,
+      order_id,
+      products,
+      deliveryCharge,
+      total,
+      profitByCategory,
+      profit,
+      Date : billDate,
+    });
+
+    console.log("✅ Bill saved successfully:", newBill.bill_id);
+
+    return res.status(201).json({
+      success: true,
+      message: "Bill created successfully",
+      data: {
+        billId: newBill.bill_id,
+        order_id: newBill.order_id,
+        total: newBill.total,
+        profit: newBill.profit,
+        createdAt: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    console.error("❌ Error creating bill:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error creating bill",
+      error:
+        process.env.NODE_ENV === "development"
+          ? error.message
+          : "Something went wrong",
+    });
+  }
+});
 
 router.get('/lastBill', async (req, res) => {
   try {
@@ -127,14 +156,35 @@ router.put('/update/:id', async (req, res) => {
       willRecomputeTotal = true;
     }
 
-    // Recompute total if products or delivery changed
+    // Recompute total and profit if products or delivery changed
     if (willRecomputeTotal) {
+      // compute total
       const productsTotal = (newProducts || []).reduce((sum, p) => {
         const qty = Number(p.quantity) || 0;
         const price = Number(p.price) || 0;
         return sum + qty * price;
       }, 0);
       updateFields.total = productsTotal + (Number(newDelivery) || 0);
+
+      // Recompute profit using frontend-provided per-unit profit only (no margin fallback)
+      const profitAccumulator = {};
+      let totalProfitRecomputed = 0;
+      const productsWithProfit = (newProducts || []).map((p) => {
+        const qty = Number(p.quantity) || 0;
+        const price = Number(p.price) || 0;
+        const cat = (p.category || 'other').toString().trim().toLowerCase();
+        const perUnitProfit = Number(p.profit) || 0;
+        const profitLine = perUnitProfit * qty;
+        profitAccumulator[cat] = (profitAccumulator[cat] || 0) + profitLine;
+        totalProfitRecomputed += profitLine;
+        const profitRounded = Math.round(profitLine * 100) / 100;
+        return { ...p, category: cat, profit: profitRounded };
+      });
+
+      const profitByCategory = Object.keys(profitAccumulator).map((k) => ({ category: k, amount: Math.round(profitAccumulator[k] * 100) / 100 }));
+
+      updateFields.products = productsWithProfit;
+      updateFields.profitByCategory = profitByCategory;
     }
 
     // If nothing to update, return early

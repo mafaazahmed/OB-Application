@@ -7,13 +7,14 @@ import Footer from "./Footer";
 export default function Editproduct() {
   const navigate = useNavigate();
   const stringData = localStorage.getItem("product");
-  const productData = JSON.parse(stringData);
+  const productData = JSON.parse(stringData || "{}");
 
   // Removed quantity and img
   const [product, setProduct] = useState({
     name: productData.name,
     price: productData.price,
     category: productData.category,
+    profit: productData.profit ?? 0,
   });
 
   const handleSubmit = async (e) => {
@@ -31,7 +32,9 @@ export default function Editproduct() {
   };
 
   const onChange = (e) => {
-    setProduct({ ...product, [e.target.name]: e.target.value });
+    const { name, value, type } = e.target;
+    const parsed = type === "number" ? Number(value) : value;
+    setProduct({ ...product, [name]: parsed });
   };
 
   return (
@@ -71,151 +74,53 @@ export default function Editproduct() {
               <div className="card-body p-4">
                 <form onSubmit={handleSubmit}>
                   <div className="mb-4">
-                    <label
-                      htmlFor="category"
-                      className="form-label fw-semibold"
-                      style={{ color: "#2d3748", fontSize: "0.95rem" }}
-                    >
-                      <i
-                        className="fa-solid fa-tags me-2"
-                        style={{ color: "#22c55e" }}
-                      ></i>
+                    <label htmlFor="category" className="form-label fw-semibold" style={{ color: "#2d3748", fontSize: "0.95rem" }}>
+                      <i className="fa-solid fa-tags me-2" style={{ color: "#22c55e" }}></i>
                       Category
                     </label>
-                    <select
-                      className="form-select"
-                      id="category"
-                      name="category"
-                      value={product.category}
-                      onChange={onChange}
-                      style={{
-                        borderRadius: "8px",
-                        border: "1px solid #e2e8f0",
-                        padding: "12px 16px",
-                        fontSize: "0.95rem",
-                      }}
-                    >
+                    <select className="form-select" id="category" name="category" value={product.category} onChange={onChange} style={{ borderRadius: "8px", border: "1px solid #e2e8f0", padding: "12px 16px", fontSize: "0.95rem" }}>
                       <option value={"vegetable"}>vegetable</option>
-                      <option value="meat">meat</option>
-                      <option value="fruit">fruit</option>
-                      <option value="herb">herb</option>
+                      <option value="chicken">chicken</option>
+                      <option value="beef">beef</option>
+                      <option value="mutton">mutton</option>
                       <option value="other">other</option>
                     </select>
                   </div>
 
                   <div className="mb-4">
-                    <label
-                      htmlFor="name"
-                      className="form-label fw-semibold"
-                      style={{ color: "#2d3748", fontSize: "0.95rem" }}
-                    >
-                      <i
-                        className="fa-solid fa-box me-2"
-                        style={{ color: "#22c55e" }}
-                      ></i>
+                    <label htmlFor="name" className="form-label fw-semibold" style={{ color: "#2d3748", fontSize: "0.95rem" }}>
+                      <i className="fa-solid fa-box me-2" style={{ color: "#22c55e" }}></i>
                       Product Name
                     </label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="name"
-                      name="name"
-                      value={product.name}
-                      onChange={onChange}
-                      placeholder="Enter product name"
-                      style={{
-                        borderRadius: "8px",
-                        border: "1px solid #e2e8f0",
-                        padding: "12px 16px",
-                        fontSize: "0.95rem",
-                      }}
-                    />
+                    <input type="text" className="form-control" id="name" name="name" value={product.name} onChange={onChange} placeholder="Enter product name" style={{ borderRadius: "8px", border: "1px solid #e2e8f0", padding: "12px 16px", fontSize: "0.95rem" }} />
                   </div>
 
                   <div className="mb-4">
-                    <label
-                      htmlFor="price"
-                      className="form-label fw-semibold"
-                      style={{
-                        color: "#2d3748",
-                        fontSize: "0.95rem",
-                      }}
-                    >
-                      <span
-                        style={{
-                          color: "#22c55e",
-                          fontWeight: "bold",
-                        }}
-                      >
-                        (₹)
-                      </span>{" "}
+                    <label htmlFor="price" className="form-label fw-semibold" style={{ color: "#2d3748", fontSize: "0.95rem" }}>
+                      <span style={{ color: "#22c55e", fontWeight: "bold" }}>(₹)</span>{" "}
                       Price
                     </label>
-                    <input
-                      type="number"
-                      min="0"
-                      className="form-control"
-                      id="price"
-                      name="price"
-                      value={product.price}
-                      onChange={(e) =>
-                        setProduct({
-                          ...product,
-                          price: Math.max(0, Number(e.target.value)),
-                        })
-                      }
-                      placeholder="0.00"
-                      style={{
-                        borderRadius: "8px",
-                        border: "1px solid #e2e8f0",
-                        padding: "12px 16px",
-                        fontSize: "0.95rem",
-                      }}
-                    />
+                    <input type="number" min="0" className="form-control" id="price" name="price" value={product.price} onChange={onChange} placeholder="0.00" style={{ borderRadius: "8px", border: "1px solid #e2e8f0", padding: "12px 16px", fontSize: "0.95rem" }} />
+                  </div>
+
+                  <div className="mb-4">
+                    <label htmlFor="profit" className="form-label fw-semibold" style={{ color: "#2d3748", fontSize: "0.95rem" }}>
+                      <i className="fa-solid fa-coins me-2" style={{ color: "#22c55e" }}></i>
+                      Profit
+                    </label>
+                    <input type="number" min="0" className="form-control" id="profit" name="profit" value={product.profit} onChange={onChange} placeholder="0.00" style={{ borderRadius: "8px", border: "1px solid #e2e8f0", padding: "12px 16px", fontSize: "0.95rem" }} />
                   </div>
 
                   <div className="d-flex gap-3 mt-4">
-                    <button
-                      type="submit"
-                      className="btn text-white fw-semibold"
-                      style={{
-                        background:
-                          "linear-gradient(135deg, rgba(34, 197, 94, 0.85) 0%, rgba(16, 185, 129, 0.85) 100%)",
-                        borderRadius: "8px",
-                        padding: "8px 16px",
-                        fontSize: "0.9rem",
-                        border: "none",
-                        boxShadow: "0 4px 15px rgba(34, 197, 94, 0.3)",
-                      }}
-                    >
+                    <button type="submit" className="btn text-white fw-semibold" style={{ background: "linear-gradient(135deg, rgba(34, 197, 94, 0.85) 0%, rgba(16, 185, 129, 0.85) 100%)", borderRadius: "8px", padding: "8px 16px", fontSize: "0.9rem", border: "none", boxShadow: "0 4px 15px rgba(34, 197, 94, 0.3)" }}>
                       <i className="fa-solid fa-save me-2"></i>
                       Save Product
                     </button>
-                    <button
-                      type="button"
-                      className="btn btn-outline-secondary fw-semibold"
-                      onClick={() => navigate("/product")}
-                      style={{
-                        borderRadius: "8px",
-                        padding: "8px 16px",
-                        fontSize: "0.9rem",
-                        border: "1px solid #e2e8f0",
-                      }}
-                    >
+                    <button type="button" className="btn btn-outline-secondary fw-semibold" onClick={() => navigate("/product")} style={{ borderRadius: "8px", padding: "8px 16px", fontSize: "0.9rem", border: "1px solid #e2e8f0" }}>
                       <i className="fa-solid fa-times me-2"></i>
                       Cancel
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(productData._id)}
-                      className="btn btn-outline-danger fw-semibold"
-                      style={{
-                        borderRadius: "8px",
-                        padding: "8px 16px",
-                        fontSize: "0.9rem",
-                        border: "1px solid #e53e3e",
-                      }}
-                    >
+                    <button type="button" onClick={() => handleDelete(productData._id)} className="btn btn-outline-danger fw-semibold" style={{ borderRadius: "8px", padding: "8px 16px", fontSize: "0.9rem", border: "1px solid #e53e3e" }}>
                       <i className="fa-solid fa-trash me-2"></i>
                       Delete
                     </button>

@@ -11,6 +11,7 @@ export default function Bill() {
   const [products, setProducts] = useState([]);
   const [orderId, setOrderId] = useState("");
   const [discount, setDiscount] = useState(0);
+  const [billDateISO, setBillDateISO] = useState(new Date().toISOString().slice(0, 10));
 
   // const date = new Date();
   // const f = new Intl.DateTimeFormat("en-us", {
@@ -19,6 +20,15 @@ export default function Bill() {
   // });
   const dateAndTime = new Date().toLocaleDateString();
   // f.format(date);
+
+  const formatDateToDDMMYYYY = (isoDate) => {
+    if (!isoDate) return "";
+    const d = new Date(isoDate + "T00:00:00");
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
 
   async function generateInvoiceNumber() {
     const prefix = "OB";
@@ -172,6 +182,9 @@ export default function Bill() {
       name: data.name,
       price: data.price,
       quantity: 1,
+      // include category and profit if available so aggregation works correctly
+      category: data.category || 'other',
+      profit: Number(data.profit) || 0,
     };
 
     const existingProduct = products.find((p) => p._id === newProduct._id);
@@ -223,91 +236,84 @@ export default function Bill() {
       alert("No products added to generate bill");
       return;
     }
+
     try {
+      // ✅ Calculate product-level profit and aggregate profit by category
+      const productsWithProfit = products.map((p) => {
+        const qty = Number(p.quantity) || 0;
+        const perUnitProfit = Number(p.profit) || 0;
+        const lineProfit = perUnitProfit * qty;
+        return {
+          ...p,
+          profit: Math.round(lineProfit * 100) / 100,
+        };
+      });
+
+      const profitMap = {};
+      productsWithProfit.forEach((p) => {
+        const cat = (p.category || "other").toLowerCase();
+        profitMap[cat] = (profitMap[cat] || 0) + p.profit;
+      });
+
+      const profitByCategory = Object.keys(profitMap).map((cat) => ({
+        category: cat,
+        amount: Math.round(profitMap[cat] * 100) / 100,
+      }));
+
+      const totalProfit = Object.values(profitMap).reduce((a, b) => a + b, 0);
+
+      // ✅ Prepare bill object for backend
       const bill = {
-        id: id,
-        products: products,
+        id,
+        order_id: orderId.toUpperCase(),
+        products: productsWithProfit,
         deliveryCharge: discount,
-        total: total,
-        order_id: orderId.toUpperCase(), // ✅ Add order_id to the bill object
-        Date: dateAndTime,
+        total,
+        profitByCategory,
+        profit: Math.round(totalProfit * 100) / 100,
+        billDate: formatDateToDDMMYYYY(billDateISO),
       };
 
-      //console.log(bill);
-      let response = await axios.post("/bill/createBill", bill);
-      console.log(response);
-    } catch (error) {
-      console.log(error);
-    }
-    if (!billRef.current) return;
+      // ✅ Send to backend
+      await axios.post("/bill/createBill", bill);
 
-    try {
-      // Add class to hide remove column during PDF generation
-      const table = billRef.current.querySelector("table");
-      if (table) {
-        table.classList.add("pdf-generating");
-      }
-
-      // Temporarily apply print-like styling and force A4 width for capture
-      const originalWidth = billRef.current.style.width || "";
+      // ✅ Generate PDF visual
+      const table = billRef.current?.querySelector("table");
+      if (table) table.classList.add("pdf-generating");
+      const originalWidth = billRef.current.style.width;
       billRef.current.classList.add("invoice-print");
-      document.body.classList.add("printing");
-      // Force the element to A4 width so html2canvas renders at the correct aspect
       billRef.current.style.width = "210mm";
 
       const canvas = await html2canvas(billRef.current, {
-        scale: 2, // higher resolution for better PDF quality
+        scale: 2,
         useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
+        backgroundColor: "#fff",
       });
 
-      // Remove temporary classes after canvas generation (cleanup in finally too)
-      if (table) {
-        table.classList.remove("pdf-generating");
-      }
       billRef.current.classList.remove("invoice-print");
-      document.body.classList.remove("printing");
+      if (table) table.classList.remove("pdf-generating");
       billRef.current.style.width = originalWidth;
 
-      const imgData = canvas.toDataURL("image/jpeg", 0.9);
-      const pdf = new jsPDF("p", "mm", "a4");
+  // Save as JPEG image instead of PDF
+  const imgData = canvas.toDataURL("image/jpeg", 0.95);
+  const link = document.createElement("a");
+  link.href = imgData;
+  link.download = `${orderId.toUpperCase() || id}.jpeg`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = pdfWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      // Use JPEG consistently
-      pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
-      heightLeft -= pdfHeight;
-
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
-        heightLeft -= pdfHeight;
-      }
-
-      pdf.save(`${currentOrderId}.pdf`);
-
-      // Now that PDF is saved, reset the form
-      const invoice = await generateInvoiceNumber();
-      setId(invoice);
+      // ✅ Reset form
+      const newInvoice = await generateInvoiceNumber();
+      setId(newInvoice);
       setProducts([]);
       setOrderId("");
       setDiscount(0);
+  // reset date to today
+  setBillDateISO(new Date().toISOString().slice(0, 10));
     } catch (error) {
       console.error("Error generating PDF:", error);
-      alert("Error generating PDF. Please try again.");
-
-      // Remove the class in case of error
-      const table = billRef.current?.querySelector("table");
-      if (table) {
-        table.classList.remove("pdf-generating");
-      }
+      alert("Error generating PDF");
     }
   };
 
@@ -446,7 +452,20 @@ export default function Bill() {
                 />
               </div>
               <div style={{ fontWeight: 600, color: "#4a5568" }}>
-                Date: {dateAndTime}
+                Date:
+                <input
+                  type="date"
+                  value={billDateISO}
+                  onChange={(e) => setBillDateISO(e.target.value)}
+                  style={{
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "6px",
+                    padding: "4px 8px",
+                    marginLeft: "8px",
+                    width: "140px",
+                    fontWeight: 500,
+                  }}
+                />
               </div>
             </div>
           </div>
@@ -607,7 +626,7 @@ export default function Bill() {
               padding: "10px 24px",
             }}
           >
-            ⬇️ Download PDF
+            💾 Save Bill
           </button>
         </div>
       </div>
