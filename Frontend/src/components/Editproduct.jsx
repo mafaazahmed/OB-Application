@@ -15,14 +15,14 @@ export default function Editproduct() {
     price: productData.price,
     category: productData.category,
     profit: productData.profit ?? 0,
+    actualprice: productData.actual_price ?? 0,
   });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await axios.put(
-      `/product/update/${productData._id}`,
-      product
-    );
+    // map actualprice -> actual_price for backend
+    const payload = { ...product, actual_price: product.actualprice };
+    await axios.put(`/product/update/${productData._id}`, payload);
     navigate("/product");
   };
 
@@ -101,6 +101,14 @@ export default function Editproduct() {
                       Price
                     </label>
                     <input type="number" min="0" className="form-control" id="price" name="price" value={product.price} onChange={onChange} placeholder="0.00" style={{ borderRadius: "8px", border: "1px solid #e2e8f0", padding: "12px 16px", fontSize: "0.95rem" }} />
+                  </div>
+
+                  <div className="mb-4">
+                    <label htmlFor="actualprice" className="form-label fw-semibold" style={{ color: "#2d3748", fontSize: "0.95rem" }}>
+                      <span style={{ color: "#22c55e", fontWeight: "bold" }}>(₹)</span>{" "}
+                      Actual Price
+                    </label>
+                    <input type="number" min="0" className="form-control" id="actualprice" name="actualprice" value={product.actualprice} onChange={onChange} placeholder="0.00" style={{ borderRadius: "8px", border: "1px solid #e2e8f0", padding: "12px 16px", fontSize: "0.95rem" }} />
                   </div>
 
                   <div className="mb-4">

@@ -11,6 +11,7 @@ export default function Addproduct() {
     price: 0,
     category: "vegetable",
     profit: 0,
+    actualprice: 0,
   });
 
   const [error, setError] = useState(""); // For validation alert
@@ -27,9 +28,10 @@ export default function Addproduct() {
     setError(""); // Clear error if valid
 
     try {
-      let res = await axios.post("/product/add", product);
+  // send actualprice as actual_price to match backend schema
+  let res = await axios.post("/product/add", { ...product, actual_price: product.actualprice });
       console.log(res);
-      setProduct({ name: "", price: 0, category: "shoe", profit: 0 });
+  setProduct({ name: "", price: 0, category: "shoe", profit: 0, actualprice: 0 });
       navigate("/product");
     } catch (err) {
       console.error(err);
@@ -197,6 +199,36 @@ export default function Addproduct() {
                       id="price"
                       name="price"
                       value={product.price}
+                      onChange={onChange}
+                      placeholder="0.00"
+                      style={{
+                        borderRadius: "8px",
+                        border: "1px solid #e2e8f0",
+                        padding: "12px 16px",
+                        fontSize: "0.95rem",
+                      }}
+                    />
+                  </div>
+
+                  <div className="mb-4">
+                    <label
+                      htmlFor="actualprice"
+                      className="form-label fw-semibold"
+                      style={{
+                        color: "#2d3748",
+                        fontSize: "0.95rem",
+                      }}
+                    >
+                      <span style={{ color: "#22c55e", fontWeight: "bold" }}>(₹)</span>{" "}
+                      Actual Price
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      className="form-control"
+                      id="actualprice"
+                      name="actualprice"
+                      value={product.actualprice}
                       onChange={onChange}
                       placeholder="0.00"
                       style={{
