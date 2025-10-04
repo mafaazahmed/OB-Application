@@ -825,7 +825,7 @@ export default function ViewBills() {
                     />
                   </div>
                   <span style={{ color: "#1a202c", fontWeight: 700, fontSize: "1.5rem" }}>
-                    Online Baazaar
+                    OnlineBaazaar
                   </span>
                 </h5>
                 <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
