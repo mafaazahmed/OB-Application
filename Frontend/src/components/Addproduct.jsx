@@ -131,11 +131,11 @@ export default function Addproduct() {
                         fontSize: "0.95rem",
                       }}
                     >
-                      <option value={"vegetable"}>vegetable</option>
-                      <option value="chicken">chicken</option>
-                      <option value="beef">beef</option>
-                      <option value="mutton">mutton</option>
-                      <option value="other">other</option>
+                      <option value={"Vegetable"}>Vegetable</option>
+                      <option value="Chicken">Chicken</option>
+                      <option value="Beef">Beef</option>
+                      <option value="Mutton">Mutton</option>
+                      <option value="Other">Other</option>
                     </select>
                   </div>
 

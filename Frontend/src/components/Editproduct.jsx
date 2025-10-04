@@ -79,11 +79,11 @@ export default function Editproduct() {
                       Category
                     </label>
                     <select className="form-select" id="category" name="category" value={product.category} onChange={onChange} style={{ borderRadius: "8px", border: "1px solid #e2e8f0", padding: "12px 16px", fontSize: "0.95rem" }}>
-                      <option value={"vegetable"}>vegetable</option>
-                      <option value="chicken">chicken</option>
-                      <option value="beef">beef</option>
-                      <option value="mutton">mutton</option>
-                      <option value="other">other</option>
+                      <option value={"Vegetable"}>Vegetable</option>
+                      <option value="Chicken">Chicken</option>
+                      <option value="Beef">Beef</option>
+                      <option value="Mutton">Mutton</option>
+                      <option value="Other">Other</option>
                     </select>
                   </div>
 
