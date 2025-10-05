@@ -22,9 +22,7 @@ export default function ViewBills() {
   const [selectedStatus, setSelectedStatus] = useState(""); // For dropdown selection
   const billRef = useRef();
   const [statusFilter, setStatusFilter] = useState('All');
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedProducts, setEditedProducts] = useState([]);
-  const [editedDeliveryCharge, setEditedDeliveryCharge] = useState(0);
+  // Edit functionality removed — view-only page
 
   // Apply status filter to a date-filtered list and set displayedBills
   const applyStatusFilter = (list, status = statusFilter) => {
@@ -56,6 +54,7 @@ export default function ViewBills() {
       }
     };
     fetchBills();
+    // view-only: no product list fetch required here
   }, []);
 
   const handleSearchChange = (e) => {
@@ -112,13 +111,13 @@ export default function ViewBills() {
     } else {
       // Search by ID - show single bill
       const filtered = bills.filter(
-        (item) => item.bill_id.toLowerCase().includes(value.toLowerCase())
+        (item) => (item.order_id || '').toLowerCase().includes(value.toLowerCase())
       );
       setSuggestions(filtered);
       setDisplayedBills([]);
       
       // If exact ID match found, auto-select the bill
-      if (filtered.length === 1 && filtered[0].bill_id.toLowerCase() === value.toLowerCase()) {
+      if (filtered.length === 1 && (filtered[0].order_id || '').toLowerCase() === value.toLowerCase()) {
         handleSuggestionClick(filtered[0]);
         setSearchType("id");
       } else {
@@ -134,68 +133,17 @@ export default function ViewBills() {
     localStorage.setItem("billDetails", val);
     setSelectedBill(bill);
     setProducts(bill.products);
-    // initialize edited copies for potential editing
-    setEditedProducts(bill.products.map(p => ({ ...p })));
-    setEditedDeliveryCharge(bill.deliveryCharge || 0);
-    setQuery(bill.bill_id);
+  setQuery(bill.order_id);
     setSelectedStatus(bill.status || 'Pending'); // Set selected status for dropdown
     setSuggestions([]);
     setDisplayedBills([]);
   };
 
-  const handleStartEdit = () => {
-    if (!selectedBill) return;
-    setIsEditing(true);
-    // ensure edited copies are fresh
-    setEditedProducts(selectedBill.products.map(p => ({ ...p })));
-    setEditedDeliveryCharge(selectedBill.deliveryCharge || 0);
-  };
+  // Edit handlers removed for view-only page
 
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    // reset edited copies
-    setEditedProducts(selectedBill ? selectedBill.products.map(p => ({ ...p })) : []);
-    setEditedDeliveryCharge(selectedBill?.deliveryCharge || 0);
-  };
+  // Add/remove/edit/product search removed — view-only
 
-  const handlePriceChange = (productId, newPrice) => {
-    setEditedProducts(prev => prev.map(p => p._id === productId ? { ...p, price: Number(newPrice) } : p));
-  };
-
-  const handleSaveEdit = async () => {
-    if (!selectedBill) return;
-    try {
-      // include status when saving edits (if user changed it in the dropdown)
-      const payload = {
-        products: editedProducts,
-        deliveryCharge: editedDeliveryCharge,
-        status: selectedStatus || selectedBill.status
-      };
-
-      const response = await axios.put(`/bill/update/${selectedBill._id}`, payload);
-      if (response.data.success) {
-        const updated = response.data.data || {};
-        alert(`✅ ${response.data.message}`);
-
-        // update local lists with the server-authoritative bill
-        setBillsList(prev => prev.map(b => b._id === selectedBill._id ? { ...b, ...updated } : b));
-        setSelectedBill(prev => ({ ...prev, ...updated }));
-        setProducts((updated.products || editedProducts).map(p => ({ ...p })));
-        setEditedProducts((updated.products || editedProducts).map(p => ({ ...p })));
-        setEditedDeliveryCharge(Number(updated.deliveryCharge ?? editedDeliveryCharge));
-        setIsEditing(false);
-
-        // update displayedBills and suggestions where applicable
-        setDisplayedBills(prev => prev.map(b => b._id === selectedBill._id ? { ...b, ...updated } : b));
-        setSuggestions(prev => prev.map(b => b._id === selectedBill._id ? { ...b, ...updated } : b));
-      } else {
-        alert(`❌ ${response.data.message}`);
-      }
-    } catch (error) {
-      console.error('Error saving edited bill:', error);
-      alert('Error saving edited bill. ' + (error.response?.data?.message || error.message));
-    }
-  };
+  // Save helper removed — view-only page
 
   const showAllBills = () => {
     // If user has searched for a date, show bills for that date
@@ -262,7 +210,7 @@ export default function ViewBills() {
       const imgData = canvas.toDataURL('image/jpeg', 0.95);
       const link = document.createElement('a');
       link.href = imgData;
-      link.download = `${selectedBill.order_id || selectedBill.bill_id}.jpeg`;
+  link.download = `${selectedBill.order_id || 'bill'}.jpeg`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -355,17 +303,59 @@ export default function ViewBills() {
     }
   };
 
+  // Delete a bill after user confirmation
+  const deleteBill = async (billId) => {
+    if (!billId) return;
+    const confirmDelete = window.confirm('Are you sure you want to delete this bill?');
+    if (!confirmDelete) return;
+
+    try {
+      const response = await axios.delete(`/bill/delete/${billId}`);
+      if (response.data && response.data.success) {
+        alert('✅ Bill deleted successfully');
+        // Remove from local lists
+        setBillsList(prev => prev.filter(b => b._id !== billId));
+        setDisplayedBills(prev => prev.filter(b => b._id !== billId));
+        setSuggestions(prev => prev.filter(b => b._id !== billId));
+        // If the deleted bill was selected, clear selection
+        if (selectedBill && selectedBill._id === billId) {
+          setSelectedBill(null);
+          setProducts([]);
+          setQuery('');
+        }
+      } else {
+        alert('❌ Failed to delete bill: ' + (response.data?.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error deleting bill:', error);
+      alert('❌ Error deleting bill: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
   // useEffect(() => {
   //   const clearAfterPrint = () => setProducts([]);
   //   window.addEventListener("afterprint", clearAfterPrint);
   //   return () => window.removeEventListener("afterprint", clearAfterPrint);
   // }, []);
 
-  // Use edited values when in edit mode
-  const currentProducts = isEditing ? editedProducts : products;
-  const subtotal = currentProducts.reduce((sum, p) => sum + p.price * p.quantity, 0);
-  const deliveryCharge = isEditing ? editedDeliveryCharge : (selectedBill?.deliveryCharge || 0);
+  // View-only aggregates (use the stored products)
+  const currentProducts = products;
+  const subtotal = currentProducts.reduce((sum, p) => sum + (Number(p.price) || 0) * (Number(p.quantity) || 0), 0);
+  const deliveryCharge = Number(selectedBill?.deliveryCharge || 0);
   const total = subtotal + deliveryCharge;
+
+  // Profit calculations based on per-unit profit field on each product
+  const profitMap = {};
+  const productsForProfit = products;
+  productsForProfit.forEach(p => {
+    const qty = Number(p.quantity) || 0;
+    const perUnitProfit = Number(p.profit) || 0;
+    const lineProfit = perUnitProfit * qty;
+    const cat = (p.category || 'other').toLowerCase();
+    profitMap[cat] = (profitMap[cat] || 0) + lineProfit;
+  });
+  const profitByCategory = Object.keys(profitMap).map(cat => ({ category: cat, amount: Math.round(profitMap[cat] * 100) / 100 }));
+  const totalProfit = Object.values(profitMap).reduce((a,b) => a + b, 0);
 
   const isQueryDate = (q) => {
   // Check for DD/MM/YYYY format
@@ -623,7 +613,7 @@ export default function ViewBills() {
           <input
           type="text"
           className="form-control"
-              placeholder="Search by Bill ID or Date (day/month/year)"
+              placeholder="Search by Order ID or Date (day/month/year)"
           value={query}
           onChange={handleSearchChange}
           style={{ borderRadius: '8px', border: '1px solid #e2e8f0' }}
@@ -711,7 +701,7 @@ export default function ViewBills() {
                       <div className="card-body p-3">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                           <span style={{ fontWeight: '600', color: '#2d3748', fontSize: '0.9rem' }}>
-                            🧾 {bill.bill_id}
+                            🧾 {bill.order_id}
                           </span>
                           <span style={{ fontWeight: '700', color: '#38a169', fontSize: '1rem' }}>
                             (&#8377;){billTotal.toFixed(2)}
@@ -760,7 +750,7 @@ export default function ViewBills() {
               >
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                       <span style={{ fontWeight: 500 }}>
-                        🧾 {item.bill_id} — 📅 {item.Date}
+                        🧾 {item.order_id} — 📅 {item.Date}
                       </span>
                       <span style={{ 
                         color: item.status === 'Cash' ? '#38a169' : 
@@ -788,9 +778,8 @@ export default function ViewBills() {
 
       </div>
 
-        {/* Selected Bill Display */}
         {selectedBill && (
-          <>
+      <>
       <div className="card p-4 mt-4" ref={billRef} style={{
         background: 'white',
         //borderRadius: '12px',
@@ -829,9 +818,7 @@ export default function ViewBills() {
                   </span>
                 </h5>
                 <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-                  <div style={{ fontWeight: 600, color: '#4a5568', marginBottom: '4px' }}>
-                    Invoice ID: {selectedBill.bill_id}
-                  </div>
+                  {/* Invoice ID removed; show Order ID above */}
                   <div
                 style={{
                   fontWeight: 600,
@@ -887,17 +874,19 @@ export default function ViewBills() {
                   </div>
                 </div>
         </div>
+        {/* (add-product search shown above the bill card when editing) */}
+
         <table className="table" style={{ borderRadius: '8px', overflow: 'hidden' }} >
           <thead style={{ background: '#f7fafc', borderBottom: '2px solid #e2e8f0' }}>
             <tr>
-                    <th style={{ width: '65%', fontWeight: 600, color: '#2d3748' }}>Product</th>
+              <th style={{ width: '65%', fontWeight: 600, color: '#2d3748' }}>Product</th>
               <th style={{ width: '11.67%', fontWeight: 600, color: '#2d3748' }}>Quantity</th>
-                    <th style={{ width: '11.67%', fontWeight: 600, color: '#2d3748' }}>Price (&#8377;)</th>
+              <th style={{ width: '11.67%', fontWeight: 600, color: '#2d3748' }}>Price (&#8377;)</th>
               <th style={{ width: '11.67%', fontWeight: 600, color: '#2d3748' }}>Total</th>
             </tr>
           </thead>
           <tbody>
-            {(isEditing ? editedProducts : products).map((p) => (
+            {products.map((p) => (
               <tr key={p._id} style={{ borderBottom: '1px solid #e2e8f0' }}>
                 <td>
                   <input
@@ -923,13 +912,13 @@ export default function ViewBills() {
                     type="number"
                     value={p.price}
                     className="form-control"
-                    readOnly={!isEditing}
-                    disabled={!isEditing}
-                    onChange={(e) => handlePriceChange(p._id, e.target.value)}
-                    style={{ border: isEditing ? '1px solid #e2e8f0' : 'none', background: isEditing ? 'white' : 'transparent', fontWeight: 500 }}
+                    readOnly
+                    disabled
+                    style={{ border: 'none', background: 'transparent', fontWeight: 500 }}
                   />
                 </td>
                       <td style={{ fontWeight: 600, color: '#2d3748' }}>&#8377; {(p.price * p.quantity).toFixed(2)}</td>
+                {/* remove button hidden in view-only mode */}
               </tr>
             ))}
           </tbody>
@@ -941,6 +930,7 @@ export default function ViewBills() {
             <span className="totals-label">Subtotal :</span>
             <span className="totals-value">&#8377; {subtotal.toFixed(2)}</span>
           </div>
+          {/* Profit and Profit by Category intentionally hidden */}
           <div className="totals-row">
             <span className="totals-label">Delivery Charge :</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -949,9 +939,8 @@ export default function ViewBills() {
                 type="number"
                 className="discount-input"
                 value={deliveryCharge}
-                readOnly={!isEditing}
-                disabled={!isEditing}
-                onChange={(e) => setEditedDeliveryCharge(Number(e.target.value))}
+                readOnly
+                disabled
               />
             </div>
           </div>
@@ -967,46 +956,28 @@ export default function ViewBills() {
         <button className="btn btn-outline-primary" onClick={printInvoice} style={{ borderRadius: '8px', fontWeight: 500, padding: '10px 24px' }}>
           🖨️ Print
         </button>
-    <button className="btn btn-outline-success" onClick={downloadPDF} style={{ borderRadius: '8px', fontWeight: 500, padding: '10px 24px' }}>
-      💾 Save Bill
-    </button>
-        {/* {!isEditing ? (
-          <button className="btn btn-outline-warning" onClick={handleStartEdit} style={{ borderRadius: '8px', fontWeight: 500, padding: '10px 24px' }}>
-            ✏️ Edit Bill
-          </button>
-        ) : (
-          <>
-            <button className="btn btn-success" onClick={handleSaveEdit} style={{ borderRadius: '8px', fontWeight: 600, padding: '10px 24px' }}>
-              💾 Save
-            </button>
-            <button className="btn btn-secondary" onClick={handleCancelEdit} style={{ borderRadius: '8px', fontWeight: 500, padding: '10px 24px' }}>
-              ✖ Cancel
-            </button>
-          </>
-        )} */}
+        <button className="btn btn-outline-success" onClick={downloadPDF} style={{ borderRadius: '8px', fontWeight: 500, padding: '10px 24px' }}>
+          💾 Save Bill
+        </button>
         <button className="btn btn-outline-warning" onClick={() => {
           const currentStatus = selectedBill.status || 'Pending';
           const newStatus = selectedStatus || currentStatus;
-          if (isEditing) {
-            alert('Please save or cancel your current edits before changing status.');
-            return;
-          }
-
           if (currentStatus === newStatus) {
             alert('Please select a different status from the dropdown before clicking Change Status');
             return;
           }
-
-          console.log('Changing status from', currentStatus, 'to', newStatus);
           updateBillStatus(selectedBill._id, newStatus);
         }} style={{ borderRadius: '8px', fontWeight: 500, padding: '10px 24px' }}>
           🔄 Change Status: {selectedBill.status || 'Pending'} → {selectedStatus || selectedBill.status || 'Pending'}
+        </button>
+        <button className="btn btn-outline-danger" onClick={() => deleteBill(selectedBill._id)} style={{ borderRadius: '8px', fontWeight: 500, padding: '10px 24px' }}>
+          🗑️ Delete Bill
         </button>
       </div>
       
       {/* Bottom spacing */}
       <div style={{ marginBottom: '50px' }}></div>
-          </>
+      </>
         )}
       </div>
 

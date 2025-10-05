@@ -7,7 +7,7 @@ import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 
 export default function Bill() {
-  const [id, setId] = useState("");
+  // invoice id removed; use orderId as the primary identifier
   const [products, setProducts] = useState([]);
   const [orderId, setOrderId] = useState("");
   const [discount, setDiscount] = useState(0);
@@ -30,69 +30,7 @@ export default function Bill() {
     return `${day}/${month}/${year}`;
   };
 
-  async function generateInvoiceNumber() {
-    const prefix = "OB";
-
-    let letterPart = "A";
-    let numberPart = 1;
-
-    try {
-      let lastInvoice = await axios.get("/bill/lastBill");
-      const last_id = lastInvoice.data?.bill_id;
-
-      if (last_id) {
-        const match = last_id.match(/^OB([A-Z]+)(\d{8})$/);
-        if (match) {
-          letterPart = match[1];
-          numberPart = parseInt(match[2], 10) + 1;
-
-          if (numberPart > 99999999) {
-            numberPart = 1;
-            letterPart = nextLetterSequence(letterPart);
-          }
-        }
-      }
-
-      // ✅ Always return a valid invoice number (even if no bill exists)
-      return `${prefix}${letterPart}${numberPart.toString().padStart(8, "0")}`;
-    } catch (error) {
-      console.error("Error generating invoice number:", error);
-
-      // ✅ fallback in case of error
-      return `${prefix}${letterPart}${numberPart.toString().padStart(8, "0")}`;
-    }
-  }
-
-  function nextLetterSequence(seq) {
-    let carry = 1;
-    let result = "";
-    for (let i = seq.length - 1; i >= 0; i--) {
-      let charCode = seq.charCodeAt(i) + carry;
-      if (charCode > 90) {
-        // Z
-        charCode = 65; // A
-        carry = 1;
-      } else {
-        carry = 0;
-      }
-      result = String.fromCharCode(charCode) + result;
-    }
-    if (carry === 1) {
-      result = "A" + result;
-    }
-    return result;
-  }
-
-  // Generate initial invoice ID
-  const invoiceId = async () => {
-    const invoice = await generateInvoiceNumber();
-    console.log(invoice);
-    setId(invoice);
-  };
-
-  useEffect(() => {
-    invoiceId();
-  }, []);
+  // invoice id logic removed. Order ID is used and provided by the user.
 
   // const [customer, setCustomer] = useState({ name: '', email: '' });
 
@@ -203,7 +141,6 @@ export default function Bill() {
     setQuery("");
   };
 
-  // const currentOrderId = orderId.trim().toUpperCase();
   localStorage.setItem('order_id', orderId);
   const currentOrderId = localStorage.getItem('order_id');
 
@@ -264,7 +201,6 @@ export default function Bill() {
 
       // ✅ Prepare bill object for backend
       const bill = {
-        id,
         order_id: orderId.toUpperCase(),
         products: productsWithProfit,
         deliveryCharge: discount,
@@ -294,18 +230,17 @@ export default function Bill() {
       if (table) table.classList.remove("pdf-generating");
       billRef.current.style.width = originalWidth;
 
-  // Save as JPEG image instead of PDF
+  // Save as JPEG image instead of PDF (use orderId)
   const imgData = canvas.toDataURL("image/jpeg", 0.95);
   const link = document.createElement("a");
   link.href = imgData;
-  link.download = `${orderId.toUpperCase() || id}.jpeg`;
+  link.download = `${orderId.toUpperCase() || 'bill'}.jpeg`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
 
       // ✅ Reset form
-      const newInvoice = await generateInvoiceNumber();
-      setId(newInvoice);
+  // invoice id removed; just reset products and inputs
       setProducts([]);
       setOrderId("");
       setDiscount(0);
@@ -419,15 +354,6 @@ export default function Bill() {
               </span>
             </h5>
             <div style={{ marginLeft: "auto", textAlign: "right" }}>
-              <div
-                style={{
-                  fontWeight: 600,
-                  color: "#4a5568",
-                  marginBottom: "4px",
-                }}
-              >
-                Invoice ID: {id}
-              </div>
               <div
                 style={{
                   fontWeight: 600,

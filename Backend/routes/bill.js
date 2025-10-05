@@ -23,7 +23,6 @@ router.get('/show', async (req,res) => {
 router.post("/createBill", async (req, res) => {
   try {
     const {
-      id,
       order_id,
       products,
       deliveryCharge = 0,
@@ -33,9 +32,9 @@ router.post("/createBill", async (req, res) => {
       billDate,
     } = req.body;
 
-    console.log("Creating bill with ID:", order_id);
+    console.log("Creating bill with Order ID:", order_id);
 
-    // ✅ Prevent duplicate bills
+    // ✅ Prevent duplicate bills by order_id
     const existingBill = await Bill.findOne({ order_id });
     if (existingBill) {
       console.log("Bill already exists with ID:", order_id);
@@ -46,7 +45,7 @@ router.post("/createBill", async (req, res) => {
     }
 
     // ✅ Validate required fields
-    if (!id || !order_id || !Array.isArray(products)) {
+    if (!order_id || !Array.isArray(products)) {
       return res.status(400).json({
         success: false,
         message: "Missing required fields or invalid data format",
@@ -56,7 +55,6 @@ router.post("/createBill", async (req, res) => {
     // ✅ Directly save bill from frontend (no calculations)
     console.log(profit);
     const newBill = await Bill.create({
-      bill_id: id,
       order_id,
       products,
       deliveryCharge,
@@ -66,13 +64,12 @@ router.post("/createBill", async (req, res) => {
       Date : billDate,
     });
 
-    console.log("✅ Bill saved successfully:", newBill.bill_id);
+    console.log("✅ Bill saved successfully for order:", newBill.order_id);
 
     return res.status(201).json({
       success: true,
       message: "Bill created successfully",
       data: {
-        billId: newBill.bill_id,
         order_id: newBill.order_id,
         total: newBill.total,
         profit: newBill.profit,
@@ -96,6 +93,7 @@ router.get('/lastBill', async (req, res) => {
   try {
     const lastBill = await Bill.findOne().sort({ _id: -1 }).limit(1);
     if (lastBill) {
+      // return the whole bill document, order_id will be present
       res.json(lastBill);
     } else {
       res.status(404).json({ 
@@ -201,6 +199,29 @@ router.put('/update/:id', async (req, res) => {
   }
 });
 
+// DELETE a bill by its Mongo document _id
+router.delete('/delete/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ success: false, message: 'No bill id provided' });
+    }
+
+    const existing = await Bill.findById(id);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Bill not found' });
+    }
+
+    await Bill.findByIdAndDelete(id);
+
+    return res.json({ success: true, message: 'Bill deleted successfully', deletedId: id });
+  } catch (error) {
+    console.error('Error deleting bill:', error);
+    return res.status(500).json({ success: false, message: 'Error deleting bill', error: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong' });
+  }
+});
+
 //check for the existing order_id
 router.post('/checkId', async (req, res) => {
   let id = req.body.orderId.toUpperCase().trim();
@@ -208,7 +229,7 @@ router.post('/checkId', async (req, res) => {
   console.log("Checking orderId:", id);
 
   try {
-    let order = await Bill.findOne({ order_id: id }); // 👈 confirm your schema field
+    let order = await Bill.findOne({ order_id: id }); // confirm schema field
 
     if (order) {
       return res.status(200).json({

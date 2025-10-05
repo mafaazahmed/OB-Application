@@ -2,11 +2,6 @@ const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
 const billSchema = new Schema ({
-    bill_id : {
-        type : String,
-        required : true,
-        unique : true,
-    },
     order_id : {
         type : String,
         required : true,
