@@ -12,7 +12,6 @@ import Editproduct from './components/Editproduct';
 import Signup from './components/Signpup';
 import Edituser from './components/Edituser';
 import ViewBills from './Screens/ViewBills';
-import Home from './components/Home';
 
 function App() {
   return (

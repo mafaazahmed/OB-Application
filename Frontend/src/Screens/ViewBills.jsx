@@ -1,5 +1,5 @@
 import "./Bill.css";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import axios from "axios";
@@ -137,6 +137,12 @@ export default function ViewBills() {
     setSelectedStatus(bill.status || 'Pending'); // Set selected status for dropdown
     setSuggestions([]);
     setDisplayedBills([]);
+    // Clear any date/range filtered state so date-based UI hides when a specific bill is selected
+    setDateFilteredBills([]);
+    setStartDate('');
+    setEndDate('');
+    setStatusFilter('All');
+    setSearchType("id");
   };
 
   // Edit handlers removed for view-only page
@@ -412,6 +418,96 @@ export default function ViewBills() {
     }, 0);
   };
 
+  // Compute profit for a single bill: total profit and profitByCategory map
+  const computeBillProfit = (bill) => {
+    // If bill has stored numeric profit, use it
+    let totalProfit = 0;
+    const categoryMap = {};
+
+    if (bill) {
+      if (typeof bill.profit === 'number') {
+        totalProfit = bill.profit;
+      }
+
+      if (Array.isArray(bill.profitByCategory) && bill.profitByCategory.length > 0) {
+        bill.profitByCategory.forEach((p) => {
+          const k = (p.category || 'other').toString().toLowerCase();
+          const amt = Number(p.amount) || 0;
+          categoryMap[k] = (categoryMap[k] || 0) + amt;
+        });
+        // if totalProfit wasn't numeric, sum the category amounts
+        if (typeof bill.profit !== 'number') {
+          totalProfit = Object.values(categoryMap).reduce((s, v) => s + v, 0);
+        }
+      }
+
+      // Fallback: compute from products array if available
+      if ((!totalProfit || totalProfit === 0) && Array.isArray(bill.products)) {
+        bill.products.forEach((p) => {
+          const qty = Number(p.quantity) || 0;
+          const perUnitProfit = Number(p.profit) || 0; // frontend stores per-unit profit on product
+          const profitLine = perUnitProfit * qty;
+          const cat = (p.category || 'other').toString().toLowerCase();
+          categoryMap[cat] = (categoryMap[cat] || 0) + profitLine;
+          totalProfit += profitLine;
+        });
+      }
+    }
+
+    // Round totals
+    totalProfit = Math.round((Number(totalProfit) || 0) * 100) / 100;
+    Object.keys(categoryMap).forEach((k) => {
+      categoryMap[k] = Math.round((categoryMap[k] || 0) * 100) / 100;
+    });
+
+    return { totalProfit, profitByCategoryMap: categoryMap };
+  };
+
+  // Get profit for selected month
+  const getSelectedMonthProfit = () => {
+    const month = selectedMonth || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+    const monthlyBills = bills.filter(bill => {
+      const dateParts = (bill.Date || '').split('/');
+      if (dateParts.length !== 3) return false;
+      const day = parseInt(dateParts[0], 10);
+      const monthNum = parseInt(dateParts[1], 10);
+      const year = parseInt(dateParts[2], 10);
+      const billYearMonth = `${year}-${String(monthNum).padStart(2, '0')}`;
+      return billYearMonth === month;
+    });
+
+    let sum = 0;
+    monthlyBills.forEach(b => {
+      const { totalProfit } = computeBillProfit(b);
+      sum += totalProfit;
+    });
+    return Math.round(sum * 100) / 100;
+  };
+
+  // Get aggregated profitByCategory for selected month (returns array)
+  const getSelectedMonthProfitByCategory = () => {
+    const month = selectedMonth || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+    const monthlyBills = bills.filter(bill => {
+      const dateParts = (bill.Date || '').split('/');
+      if (dateParts.length !== 3) return false;
+      const day = parseInt(dateParts[0], 10);
+      const monthNum = parseInt(dateParts[1], 10);
+      const year = parseInt(dateParts[2], 10);
+      const billYearMonth = `${year}-${String(monthNum).padStart(2, '0')}`;
+      return billYearMonth === month;
+    });
+
+    const agg = {};
+    monthlyBills.forEach(b => {
+      const { profitByCategoryMap } = computeBillProfit(b);
+      Object.keys(profitByCategoryMap).forEach(k => {
+        agg[k] = (agg[k] || 0) + profitByCategoryMap[k];
+      });
+    });
+    Object.keys(agg).forEach(k => { agg[k] = Math.round(agg[k] * 100) / 100; });
+    return Object.keys(agg).map(k => ({ category: k, amount: agg[k] }));
+  };
+
   // Calculate turnover for selected month
   const getSelectedMonthTurnover = () => {
     if (!selectedMonth) return getCurrentMonthTurnover();
@@ -450,6 +546,24 @@ export default function ViewBills() {
     }, 0);
   };
 
+  // Memoized profit-by-category for selected month
+  const monthProfitByCategory = useMemo(() => {
+    return getSelectedMonthProfitByCategory();
+  }, [bills, selectedMonth]);
+
+  // Memoized profit-by-category for currently displayed bills (date/range search)
+  const displayedProfitByCategory = useMemo(() => {
+    const agg = {};
+    (displayedBills || []).forEach(b => {
+      const { profitByCategoryMap } = computeBillProfit(b);
+      Object.keys(profitByCategoryMap).forEach(k => {
+        agg[k] = (agg[k] || 0) + profitByCategoryMap[k];
+      });
+    });
+    Object.keys(agg).forEach(k => { agg[k] = Math.round(agg[k] * 100) / 100; });
+    return Object.keys(agg).map(k => ({ category: k, amount: agg[k] }));
+  }, [displayedBills]);
+
   return (
     <>
       <Navbar />
@@ -462,22 +576,40 @@ export default function ViewBills() {
           background: 'linear-gradient(135deg, #f0fff4 0%, #e6fffa 100%)',
           boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <div>
-              <strong style={{ color: '#22543d', fontSize: '1.1rem' }}>
-                📊 Monthly Turnover
-              </strong>
+          <div style={{ marginBottom: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <strong style={{ color: '#22543d', fontSize: '1.1rem' }}>
+                  📊 Monthly Turnover
+                </strong>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{
+                  color: '#22543d',
+                  fontSize: '1.5rem',
+                  fontWeight: '700',
+                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.1)'
+                }}>
+                  (&#8377;){getSelectedMonthTurnover().toFixed(2)}
+                </div>
+                <div style={{ fontSize: '0.9rem', color: '#2f855a', marginTop: '6px' }}>
+                  Profit: <span style={{ fontWeight: 700, color: '#22543d' }}>&#8377;{getSelectedMonthProfit().toFixed(2)}</span>
+                </div>
+              </div>
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <span style={{ 
-                color: '#22543d', 
-                fontSize: '1.5rem', 
-                fontWeight: '700',
-                textShadow: '0 1px 2px rgba(0, 0, 0, 0.1)'
-              }}>
-                (&#8377;){getSelectedMonthTurnover().toFixed(2)}
-              </span>
-            </div>
+
+            {/* Profit by category: single-line, scrollable */}
+            {monthProfitByCategory.length > 0 && (
+              <div style={{ marginTop: '10px' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'nowrap', justifyContent: 'space-between', alignItems: 'center', overflow: 'hidden' }}>
+                  {monthProfitByCategory.map((c) => (
+                    <div key={c.category} title={`${c.category}: ₹${c.amount.toFixed(2)}`} style={{ background: '#ffffff', padding: '4px 6px', borderRadius: '8px', border: '1px solid #e6fffa', color: '#22543d', fontWeight: 600, fontSize: '0.72rem', flex: '1 1 0', minWidth: 0, textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {c.category}: ₹{c.amount.toFixed(2)}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <label style={{ color: '#2f855a', fontSize: '0.9rem', fontWeight: '500', margin: 0 }}>
@@ -659,6 +791,19 @@ export default function ViewBills() {
               <strong>Total Bills Found:</strong> {displayedBills.length}
               <br />
               <strong>Daily Turnover:</strong> (&#8377;){totalTurnover.toFixed(2)}
+              <br />
+              <strong>Profit:</strong> (&#8377;){displayedBills.reduce((s,b) => s + computeBillProfit(b).totalProfit, 0).toFixed(2)}
+              {displayedProfitByCategory.length > 0 && (
+                <div style={{ marginTop: '8px', width: '100%' }}>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'nowrap', justifyContent: 'space-between', alignItems: 'center', overflow: 'hidden' }}>
+                    {displayedProfitByCategory.map(c => (
+                      <div key={c.category} style={{ background: '#fff', padding: '4px 6px', borderRadius: '8px', border: '1px solid #bee3f8', color: '#22543d', fontWeight: 600, fontSize: '0.72rem', flex: '1 1 0', minWidth: 0, textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {c.category}: ₹{c.amount.toFixed(2)}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
         </div>
           )}
 
@@ -677,6 +822,7 @@ export default function ViewBills() {
                   const billTotal =
                     bill.products.reduce((sum, p) => sum + p.price * p.quantity, 0) +
                     (bill.deliveryCharge || 0);
+                  const { totalProfit } = computeBillProfit(bill);
                   return (
                     <div
                       key={index}
@@ -703,13 +849,24 @@ export default function ViewBills() {
                           <span style={{ fontWeight: '600', color: '#2d3748', fontSize: '0.9rem' }}>
                             🧾 {bill.order_id}
                           </span>
-                          <span style={{ fontWeight: '700', color: '#38a169', fontSize: '1rem' }}>
-                            (&#8377;){billTotal.toFixed(2)}
-                          </span>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontWeight: '700', color: '#38a169', fontSize: '1rem' }}>(&#8377;){billTotal.toFixed(2)}</div>
+                            <div style={{ fontSize: '0.85rem', color: '#2f855a' }}>Profit: <strong>&#8377;{totalProfit.toFixed(2)}</strong></div>
+                          </div>
                         </div>
                         <div style={{ color: '#718096', fontSize: '0.85rem' }}>
                           📅 {bill.Date}
                         </div>
+                        {/* Small profitByCategory snippet for this bill */}
+                        {Object.keys(computeBillProfit(bill).profitByCategoryMap || {}).length > 0 && (
+                          <div style={{ marginTop: '6px', display: 'flex', gap: '6px', flexWrap: 'nowrap', overflow: 'hidden', alignItems: 'center' }}>
+                            {Object.entries(computeBillProfit(bill).profitByCategoryMap).slice(0,3).map(([k,v]) => (
+                              <div key={k} title={`${k}: ₹${v.toFixed(2)}`} style={{ background: '#f7fafc', padding: '3px 6px', borderRadius: '6px', fontSize: '0.7rem', color: '#2d3748', flex: '1 1 0', minWidth: 0, textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {k}: ₹{v.toFixed(2)}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                         <div style={{ color: '#718096', fontSize: '0.85rem' }}>
                           📦 {bill.products.length} items
                         </div>

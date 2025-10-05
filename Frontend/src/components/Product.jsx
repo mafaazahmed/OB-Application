@@ -108,6 +108,8 @@ export default function Product() {
                       <th scope="col">Product Name</th>
                       <th scope="col">Category</th>
                       <th scope="col">Price (₹)</th>
+                      <th scope="col">Actual Price (₹)</th>
+                      <th scope="col">Profit (₹)</th>
                       {isAdmin && <th scope="col">Edit Product</th>}
                     </tr>
                   </thead>
@@ -130,6 +132,16 @@ export default function Product() {
                           <td>
                             <span className="fw-bold text-success">
                               ₹{data.price}
+                            </span>
+                          </td>
+                          <td>
+                            <span className="fw-bold text-muted">
+                              ₹{(data.actual_price || 0).toFixed(2)}
+                            </span>
+                          </td>
+                          <td>
+                            <span className="fw-bold text-primary">
+                              ₹{(Number(data.profit) || 0).toFixed(2)}
                             </span>
                           </td>
                           {isAdmin && (
