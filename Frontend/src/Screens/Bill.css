@@ -161,6 +161,44 @@ body {
   background: white !important;
 }
 
+/* Larger, clearer text when generating the invoice image (applied to the bill container only)
+   These rules aim to improve legibility on small/mobile screens without changing layout or column order. */
+.invoice-print {
+  /* increase base font size slightly for everything inside the invoice */
+  font-size: 1.05rem !important;
+  line-height: 1.35 !important;
+}
+
+.invoice-print table th,
+.invoice-print table td {
+  /* make table text larger but keep paddings intact so column arrangement is unchanged */
+  font-size: 1rem !important;
+}
+
+.invoice-print .totals-label,
+.invoice-print .totals-value {
+  font-size: 1.05rem !important;
+}
+
+.invoice-print .total-row,
+.invoice-print .total-value {
+  font-size: 1.45rem !important;
+}
+
+.invoice-print .discount-input,
+.invoice-print input[type="text"],
+.invoice-print input[type="number"],
+.invoice-print input[type="date"],
+.invoice-print select {
+  font-size: 1rem !important;
+}
+
+.invoice-print h5,
+.invoice-print .card h5,
+.invoice-print .card .d-flex > span {
+  font-size: 1.35rem !important;
+}
+
 /* When set on body, tighten up fonts and ensure colors are printed correctly */
 .printing * {
   -webkit-print-color-adjust: exact !important;

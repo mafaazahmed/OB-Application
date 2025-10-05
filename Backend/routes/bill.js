@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const Bill = require('../models/bill');
 
+
 router.get('/show', async (req,res) => {
      try {
         let data = await Bill.find();
@@ -89,115 +90,115 @@ router.post("/createBill", async (req, res) => {
   }
 });
 
-router.get('/lastBill', async (req, res) => {
-  try {
-    const lastBill = await Bill.findOne().sort({ _id: -1 }).limit(1);
-    if (lastBill) {
-      // return the whole bill document, order_id will be present
-      res.json(lastBill);
-    } else {
-      res.status(404).json({ 
-        success: false, 
-        message: 'No bills found in database' 
-      });
-    }
-  } catch (error) {
-    console.error('Error fetching last bill:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error fetching last bill from database',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
-    });
-  }
-})
+// router.get('/lastBill', async (req, res) => {
+//   try {
+//     const lastBill = await Bill.findOne().sort({ _id: -1 }).limit(1);
+//     if (lastBill) {
+//       // return the whole bill document, order_id will be present
+//       res.json(lastBill);
+//     } else {
+//       res.status(404).json({ 
+//         success: false, 
+//         message: 'No bills found in database' 
+//       });
+//     }
+//   } catch (error) {
+//     console.error('Error fetching last bill:', error);
+//     res.status(500).json({ 
+//       success: false, 
+//       message: 'Error fetching last bill from database',
+//       error: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
+//     });
+//   }
+// })
 
-router.put('/update/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status, products, deliveryCharge } = req.body;
+// router.put('/update/:id', async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const { status, products, deliveryCharge } = req.body;
 
-    // Fetch existing bill first
-    const existingBill = await Bill.findById(id);
-    if (!existingBill) {
-      return res.status(404).json({ success: false, message: 'Bill not found with the provided ID' });
-    }
+//     // Fetch existing bill first
+//     const existingBill = await Bill.findById(id);
+//     if (!existingBill) {
+//       return res.status(404).json({ success: false, message: 'Bill not found with the provided ID' });
+//     }
 
-    const updateFields = {};
+//     const updateFields = {};
 
-    // If status provided, validate and set
-    if (typeof status !== 'undefined') {
-      const validStatuses = ['Pending', 'Cash', 'Online'];
-      if (!validStatuses.includes(status)) {
-        return res.status(400).json({ success: false, message: 'Invalid status. Must be one of: Pending, Cash, Online', validStatuses });
-      }
-      updateFields.status = status;
-    }
+//     // If status provided, validate and set
+//     if (typeof status !== 'undefined') {
+//       const validStatuses = ['Pending', 'Cash', 'Online'];
+//       if (!validStatuses.includes(status)) {
+//         return res.status(400).json({ success: false, message: 'Invalid status. Must be one of: Pending, Cash, Online', validStatuses });
+//       }
+//       updateFields.status = status;
+//     }
 
-    let willRecomputeTotal = false;
-    let newProducts = existingBill.products;
-    let newDelivery = typeof deliveryCharge !== 'undefined' ? deliveryCharge : existingBill.deliveryCharge;
+//     let willRecomputeTotal = false;
+//     let newProducts = existingBill.products;
+//     let newDelivery = typeof deliveryCharge !== 'undefined' ? deliveryCharge : existingBill.deliveryCharge;
 
-    // If products provided, validate type and set
-    if (typeof products !== 'undefined') {
-      if (!Array.isArray(products)) {
-        return res.status(400).json({ success: false, message: 'Products must be an array' });
-      }
-      updateFields.products = products;
-      newProducts = products;
-      willRecomputeTotal = true;
-    }
+//     // If products provided, validate type and set
+//     if (typeof products !== 'undefined') {
+//       if (!Array.isArray(products)) {
+//         return res.status(400).json({ success: false, message: 'Products must be an array' });
+//       }
+//       updateFields.products = products;
+//       newProducts = products;
+//       willRecomputeTotal = true;
+//     }
 
-    // If deliveryCharge provided, set and mark for total recompute
-    if (typeof deliveryCharge !== 'undefined') {
-      updateFields.deliveryCharge = deliveryCharge;
-      newDelivery = deliveryCharge;
-      willRecomputeTotal = true;
-    }
+//     // If deliveryCharge provided, set and mark for total recompute
+//     if (typeof deliveryCharge !== 'undefined') {
+//       updateFields.deliveryCharge = deliveryCharge;
+//       newDelivery = deliveryCharge;
+//       willRecomputeTotal = true;
+//     }
 
-    // Recompute total and profit if products or delivery changed
-    if (willRecomputeTotal) {
-      // compute total
-      const productsTotal = (newProducts || []).reduce((sum, p) => {
-        const qty = Number(p.quantity) || 0;
-        const price = Number(p.price) || 0;
-        return sum + qty * price;
-      }, 0);
-      updateFields.total = productsTotal + (Number(newDelivery) || 0);
+//     // Recompute total and profit if products or delivery changed
+//     if (willRecomputeTotal) {
+//       // compute total
+//       const productsTotal = (newProducts || []).reduce((sum, p) => {
+//         const qty = Number(p.quantity) || 0;
+//         const price = Number(p.price) || 0;
+//         return sum + qty * price;
+//       }, 0);
+//       updateFields.total = productsTotal + (Number(newDelivery) || 0);
 
-      // Recompute profit using frontend-provided per-unit profit only (no margin fallback)
-      const profitAccumulator = {};
-      let totalProfitRecomputed = 0;
-      const productsWithProfit = (newProducts || []).map((p) => {
-        const qty = Number(p.quantity) || 0;
-        const price = Number(p.price) || 0;
-        const cat = (p.category || 'other').toString().trim().toLowerCase();
-        const perUnitProfit = Number(p.profit) || 0;
-        const profitLine = perUnitProfit * qty;
-        profitAccumulator[cat] = (profitAccumulator[cat] || 0) + profitLine;
-        totalProfitRecomputed += profitLine;
-        const profitRounded = Math.round(profitLine * 100) / 100;
-        return { ...p, category: cat, profit: profitRounded };
-      });
+//       // Recompute profit using frontend-provided per-unit profit only (no margin fallback)
+//       const profitAccumulator = {};
+//       let totalProfitRecomputed = 0;
+//       const productsWithProfit = (newProducts || []).map((p) => {
+//         const qty = Number(p.quantity) || 0;
+//         const price = Number(p.price) || 0;
+//         const cat = (p.category || 'other').toString().trim().toLowerCase();
+//         const perUnitProfit = Number(p.profit) || 0;
+//         const profitLine = perUnitProfit * qty;
+//         profitAccumulator[cat] = (profitAccumulator[cat] || 0) + profitLine;
+//         totalProfitRecomputed += profitLine;
+//         const profitRounded = Math.round(profitLine * 100) / 100;
+//         return { ...p, category: cat, profit: profitRounded };
+//       });
 
-      const profitByCategory = Object.keys(profitAccumulator).map((k) => ({ category: k, amount: Math.round(profitAccumulator[k] * 100) / 100 }));
+//       const profitByCategory = Object.keys(profitAccumulator).map((k) => ({ category: k, amount: Math.round(profitAccumulator[k] * 100) / 100 }));
 
-      updateFields.products = productsWithProfit;
-      updateFields.profitByCategory = profitByCategory;
-    }
+//       updateFields.products = productsWithProfit;
+//       updateFields.profitByCategory = profitByCategory;
+//     }
 
-    // If nothing to update, return early
-    if (Object.keys(updateFields).length === 0) {
-      return res.status(400).json({ success: false, message: 'No updatable fields provided' });
-    }
+//     // If nothing to update, return early
+//     if (Object.keys(updateFields).length === 0) {
+//       return res.status(400).json({ success: false, message: 'No updatable fields provided' });
+//     }
 
-    const updatedBill = await Bill.findByIdAndUpdate(id, { $set: updateFields }, { new: true });
+//     const updatedBill = await Bill.findByIdAndUpdate(id, { $set: updateFields }, { new: true });
 
-    res.json({ success: true, message: 'Bill updated successfully', data: updatedBill });
-  } catch (error) {
-    console.error('Error updating bill:', error);
-    res.status(500).json({ success: false, message: 'Internal server error while updating bill', error: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong' });
-  }
-});
+//     res.json({ success: true, message: 'Bill updated successfully', data: updatedBill });
+//   } catch (error) {
+//     console.error('Error updating bill:', error);
+//     res.status(500).json({ success: false, message: 'Internal server error while updating bill', error: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong' });
+//   }
+// });
 
 // DELETE a bill by its Mongo document _id
 router.delete('/delete/:id', async (req, res) => {
