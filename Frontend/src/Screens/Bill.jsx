@@ -12,6 +12,9 @@ export default function Bill() {
   const [orderId, setOrderId] = useState("");
   const [discount, setDiscount] = useState(0);
   const [billDateISO, setBillDateISO] = useState(new Date().toISOString().slice(0, 10));
+  // Local storage key for persisting current bill products
+  const LS_PRODUCTS_KEY = "current_bill_products_v1";
+  const LS_ORDER_ID_KEY = "current_bill_order_id_v1";
 
   // const date = new Date();
   // const f = new Intl.DateTimeFormat("en-us", {
@@ -87,7 +90,45 @@ export default function Bill() {
       setProductList(response.data);
     };
     fetchUsers();
+    // Load persisted products and orderId from localStorage on mount
+    try {
+      const saved = localStorage.getItem(LS_PRODUCTS_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) setProducts(parsed);
+      }
+    } catch (e) {
+      console.warn('Failed to load saved products from localStorage', e);
+    }
+    try {
+      const savedOrder = localStorage.getItem(LS_ORDER_ID_KEY);
+      if (savedOrder) setOrderId(savedOrder);
+    } catch (e) {
+      // ignore
+    }
   }, []);
+
+  // Persist products to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem(LS_PRODUCTS_KEY, JSON.stringify(products));
+    } catch (e) {
+      console.warn('Failed to save products to localStorage', e);
+    }
+  }, [products]);
+
+  // Persist orderId as user types (so it's restored on reload)
+  useEffect(() => {
+    try {
+      if (orderId && orderId.trim() !== "") {
+        localStorage.setItem(LS_ORDER_ID_KEY, orderId);
+      } else {
+        localStorage.removeItem(LS_ORDER_ID_KEY);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [orderId]);
 
   const handleSearchChange = (e) => {
     const value = e.target.value;
@@ -246,6 +287,14 @@ export default function Bill() {
       setDiscount(0);
   // reset date to today
   setBillDateISO(new Date().toISOString().slice(0, 10));
+      // Clear persisted products and order id
+      try {
+        localStorage.removeItem(LS_PRODUCTS_KEY);
+        localStorage.removeItem(LS_ORDER_ID_KEY);
+        localStorage.removeItem('product'); // remove temporary product selection too
+      } catch (e) {
+        // ignore
+      }
     } catch (error) {
       console.error("Error generating PDF:", error);
       alert("Error generating PDF");
