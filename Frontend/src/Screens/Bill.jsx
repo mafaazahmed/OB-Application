@@ -70,7 +70,9 @@ export default function Bill() {
     setProducts(products.filter((p) => p._id !== _id));
   };
 
-  const subtotal = products.reduce((sum, p) => sum + p.price * p.quantity, 0);
+  const subtotal = products.reduce((sum, p) => sum + (Number(p.price) || 0) * (Number(p.quantity) || 0), 0);
+  // Total number of distinct product line-items added to the bill
+  const totalQuantity = products.length;
 
   const handleDiscount = (e) => {
     if (e.target.value >= 0) {
@@ -550,6 +552,10 @@ export default function Bill() {
 
           {/* Totals */}
           <div className="totals-section">
+            <div className="totals-row">
+              <span className="totals-label">Total Quantity :</span>
+              <span className="totals-value">{totalQuantity}</span>
+            </div>
             <div className="totals-row">
               <span className="totals-label">Subtotal :</span>
               <span className="totals-value">

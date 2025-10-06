@@ -115,29 +115,41 @@ router.post("/createBill", async (req, res) => {
 router.put('/update/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
-
-    if (!status) {
-      return res.status(400).json({ success: false, message: 'Status is required' });
-    }
-
-    const validStatuses = ['Pending', 'Cash', 'Online'];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({ success: false, message: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
-    }
+    const { status, receivedamount } = req.body;
 
     const existingBill = await Bill.findById(id);
     if (!existingBill) {
       return res.status(404).json({ success: false, message: 'Bill not found' });
     }
 
-    existingBill.status = status;
+    const updates = {};
+
+    // Optional status update (must be valid if provided)
+    if (typeof status !== 'undefined') {
+      const validStatuses = ['Pending', 'Cash', 'Online'];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ success: false, message: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
+      }
+      updates.status = status;
+    }
+
+    // Optional received amount update
+    if (typeof receivedamount !== 'undefined') {
+      const num = Number(receivedamount);
+      if (Number.isNaN(num) || num < 0) {
+        return res.status(400).json({ success: false, message: 'Invalid receivedamount. Must be a non-negative number.' });
+      }
+      updates.receivedamount = num;
+    }
+
+    // Apply updates and save
+    Object.assign(existingBill, updates);
     await existingBill.save();
 
-    return res.json({ success: true, message: 'Bill status updated', data: existingBill });
+    return res.json({ success: true, message: 'Bill updated', data: existingBill });
   } catch (error) {
-    console.error('Error updating bill status:', error);
-    return res.status(500).json({ success: false, message: 'Error updating bill status', error: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong' });
+    console.error('Error updating bill:', error);
+    return res.status(500).json({ success: false, message: 'Error updating bill', error: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong' });
   }
 });
 

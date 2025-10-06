@@ -20,6 +20,7 @@ export default function ViewBills() {
   const [endDate, setEndDate] = useState(""); // YYYY-MM-DD from date input
   const [billStatus, setBillStatus] = useState("");
   const [selectedStatus, setSelectedStatus] = useState(""); // For dropdown selection
+  const [receivedAmountInput, setReceivedAmountInput] = useState('');
   const billRef = useRef();
   const [statusFilter, setStatusFilter] = useState('All');
   // Edit functionality removed — view-only page
@@ -135,6 +136,8 @@ export default function ViewBills() {
     setProducts(bill.products);
   setQuery(bill.order_id);
     setSelectedStatus(bill.status || 'Pending'); // Set selected status for dropdown
+    // Initialize received amount input from bill if present
+    setReceivedAmountInput(bill.receivedamount != null ? String(bill.receivedamount) : '');
     setSuggestions([]);
     setDisplayedBills([]);
     // Clear any date/range filtered state so date-based UI hides when a specific bill is selected
@@ -347,6 +350,8 @@ export default function ViewBills() {
   // View-only aggregates (use the stored products)
   const currentProducts = products;
   const subtotal = currentProducts.reduce((sum, p) => sum + (Number(p.price) || 0) * (Number(p.quantity) || 0), 0);
+  // Total Quantity should count number of product lines (not sum of quantities)
+  const totalQuantity = currentProducts.length;
   const deliveryCharge = Number(selectedBill?.deliveryCharge || 0);
   const total = subtotal + deliveryCharge;
 
@@ -1029,6 +1034,53 @@ export default function ViewBills() {
                       <option value="Online">Online</option>
                     </select>
                   </div>
+                  {/* Received amount input - visible only when bill is Pending */}
+                  {(!selectedBill?.status || selectedBill.status === 'Pending') && (
+                    <div className="bill-status-container" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', justifyContent: 'flex-end' }}>
+                      <label style={{ color: '#4a5568', fontSize: '0.9rem', margin: 0 }}>Received Amount:</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={receivedAmountInput}
+                        onChange={(e) => setReceivedAmountInput(e.target.value)}
+                        placeholder="0"
+                        style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #e2e8f0', width: '120px' }}
+                      />
+                      <button
+                        className="btn btn-sm btn-outline-primary"
+                        onClick={async () => {
+                          const amt = Number(receivedAmountInput);
+                          if (Number.isNaN(amt) || amt < 0) {
+                            alert('Please enter a valid non-negative amount');
+                            return;
+                          }
+                          try {
+                            const resp = await axios.put(`/bill/update/${selectedBill._id}`, { receivedamount: amt });
+                              if (resp.data && resp.data.success) {
+                              alert('✅ Received amount updated');
+                              // read back from response (DB authoritative)
+                              const saved = resp.data.data && typeof resp.data.data.receivedamount !== 'undefined' ? resp.data.data.receivedamount : amt;
+                              // update local state across places where the bill exists
+                              setBillsList(prev => prev.map(b => b._id === selectedBill._id ? { ...b, receivedamount: saved } : b));
+                              setDisplayedBills(prev => prev.map(b => b._id === selectedBill._id ? { ...b, receivedamount: saved } : b));
+                              setSuggestions(prev => prev.map(b => b._id === selectedBill._id ? { ...b, receivedamount: saved } : b));
+                              setSelectedBill(prev => ({ ...prev, receivedamount: saved }));
+                              // keep input showing the saved amount
+                              setReceivedAmountInput(String(saved));
+                            } else {
+                              alert('❌ Failed to update received amount: ' + (resp.data?.message || 'Unknown'));
+                            }
+                          } catch (err) {
+                            console.error('Error updating received amount', err);
+                            alert('❌ Error updating received amount: ' + (err.response?.data?.message || err.message));
+                          }
+                        }}
+                        style={{ borderRadius: '6px' }}
+                      >
+                        Update Received Amount
+                      </button>
+                    </div>
+                  )}
                 </div>
         </div>
         {/* (add-product search shown above the bill card when editing) */}
@@ -1083,6 +1135,10 @@ export default function ViewBills() {
 
         {/* Totals */}
         <div className="totals-section">
+          <div className="totals-row">
+            <span className="totals-label">Total Quantity :</span>
+            <span className="totals-value">{totalQuantity}</span>
+          </div>
           <div className="totals-row">
             <span className="totals-label">Subtotal :</span>
             <span className="totals-value">&#8377; {subtotal.toFixed(2)}</span>

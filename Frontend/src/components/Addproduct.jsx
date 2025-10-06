@@ -31,7 +31,7 @@ export default function Addproduct() {
   // send actualprice as actual_price to match backend schema
   let res = await axios.post("/product/add", { ...product, actual_price: product.actualprice });
       console.log(res);
-  setProduct({ name: "", price: 0, category: "shoe", profit: 0, actualprice: 0 });
+  setProduct({ name: "", price: 0, category: "Vegetable", profit: 0, actualprice: 0 });
       navigate("/product");
     } catch (err) {
       console.error(err);

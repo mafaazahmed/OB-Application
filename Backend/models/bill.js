@@ -64,6 +64,11 @@ const billSchema = new Schema ({
         enum : ['Pending', 'Cash', 'Online'],
         required : true,
         default : 'Pending',
+    },
+    receivedamount : {
+        type: Number,
+        required: true,
+        default: 0
     }
 })
 
