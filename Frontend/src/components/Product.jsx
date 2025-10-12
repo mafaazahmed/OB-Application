@@ -40,13 +40,25 @@ export default function Product() {
   }, []);
 
   const shouldShowContent = localStorage.getItem("authToken") || viewMode;
-  const isAdmin = localStorage.getItem("admin") === "true"; // ✅ check admin
+  const isAdmin = localStorage.getItem("admin") === "true";
 
-  // Inline editing state (one row at a time)
+  // Inline editing state
   const [editingRowId, setEditingRowId] = useState(null);
   const [drafts, setDrafts] = useState({});
 
-  console.log(isAdmin);
+  // ✅ Delete product handler
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this product?")) {
+      try {
+        await axios.delete(`/product/delete/${id}`);
+        setProduct((prev) => prev.filter((item) => item._id !== id));
+        navigate("/product");
+      } catch (err) {
+        console.error("Error deleting product:", err);
+        alert("Failed to delete product: " + (err.response?.data?.message || err.message));
+      }
+    }
+  };
 
   return (
     <>
@@ -54,7 +66,7 @@ export default function Product() {
         <>
           <Navbar />
 
-          {/* Search Box Section */}
+          {/* Search Box */}
           <div className="py-4">
             <div className="d-flex justify-content-center">
               <input
@@ -77,7 +89,8 @@ export default function Product() {
                   (e.target.style.boxShadow = "0 0 8px rgba(128, 0, 128, 0.5)")
                 }
                 onBlur={(e) =>
-                  (e.target.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.1)")
+                  (e.target.style.boxShadow =
+                    "0 4px 12px rgba(0, 0, 0, 0.1)")
                 }
               />
             </div>
@@ -115,6 +128,7 @@ export default function Product() {
                       <th scope="col">Actual Price (₹)</th>
                       <th scope="col">Profit (₹)</th>
                       {isAdmin && <th scope="col">Edit Product</th>}
+                      {isAdmin && <th scope="col">Delete</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -134,86 +148,230 @@ export default function Product() {
 
                         const startEdit = () => {
                           setEditingRowId(data._id);
-                          setDrafts(prev => ({ ...prev, [data._id]: { name: data.name, category: data.category, price: data.price, actualprice: data.actual_price ?? 0, profit: data.profit ?? 0 } }));
+                          setDrafts((prev) => ({
+                            ...prev,
+                            [data._id]: {
+                              name: data.name,
+                              category: data.category,
+                              price: data.price,
+                              actualprice: data.actual_price ?? 0,
+                              profit: data.profit ?? 0,
+                            },
+                          }));
                         };
 
                         const cancelEdit = () => {
                           setEditingRowId(null);
-                          setDrafts(prev => { const copy = { ...prev }; delete copy[data._id]; return copy; });
+                          setDrafts((prev) => {
+                            const copy = { ...prev };
+                            delete copy[data._id];
+                            return copy;
+                          });
                         };
 
                         const saveEdit = async () => {
                           try {
                             const d = drafts[data._id];
-                            const payload = { name: d.name, category: d.category, price: d.price, profit: d.profit, actual_price: d.actualprice };
+                            const payload = {
+                              name: d.name,
+                              category: d.category,
+                              price: d.price,
+                              profit: d.profit,
+                              actual_price: d.actualprice,
+                            };
                             await axios.put(`/product/update/${data._id}`, payload);
-                            // update local product list
-                            setProduct(prev => prev.map(p => p._id === data._id ? { ...p, ...payload } : p));
+                            setProduct((prev) =>
+                              prev.map((p) =>
+                                p._id === data._id ? { ...p, ...payload } : p
+                              )
+                            );
                             setEditingRowId(null);
-                            setDrafts(prev => { const copy = { ...prev }; delete copy[data._id]; return copy; });
+                            setDrafts((prev) => {
+                              const copy = { ...prev };
+                              delete copy[data._id];
+                              return copy;
+                            });
                           } catch (err) {
-                            console.error('Error updating product', err);
-                            alert('Failed to update product: ' + (err.response?.data?.message || err.message));
+                            console.error("Error updating product", err);
+                            alert(
+                              "Failed to update product: " +
+                                (err.response?.data?.message || err.message)
+                            );
                           }
                         };
 
                         return (
                           <tr key={data._id}>
-                            <td><b>{index + 1}</b></td>
+                            <td>
+                              <b>{index + 1}</b>
+                            </td>
                             <td>
                               {isEditing ? (
-                                <input className="form-control" value={draft.name} onChange={(e) => setDrafts(prev => ({ ...prev, [data._id]: { ...prev[data._id], name: e.target.value } }))} />
+                                <input
+                                  className="form-control"
+                                  value={draft.name}
+                                  onChange={(e) =>
+                                    setDrafts((prev) => ({
+                                      ...prev,
+                                      [data._id]: {
+                                        ...prev[data._id],
+                                        name: e.target.value,
+                                      },
+                                    }))
+                                  }
+                                />
                               ) : (
                                 data.name
                               )}
                             </td>
                             <td>
                               {isEditing ? (
-                                <select className="form-select" value={draft.category} onChange={(e) => setDrafts(prev => ({ ...prev, [data._id]: { ...prev[data._id], category: e.target.value } }))}>
-                                  <option value={"Vegetable"}>Vegetable</option>
+                                <select
+                                  className="form-select"
+                                  value={draft.category}
+                                  onChange={(e) =>
+                                    setDrafts((prev) => ({
+                                      ...prev,
+                                      [data._id]: {
+                                        ...prev[data._id],
+                                        category: e.target.value,
+                                      },
+                                    }))
+                                  }
+                                >
+                                  <option value="Vegetable">Vegetable</option>
                                   <option value="Chicken">Chicken</option>
                                   <option value="Beef">Beef</option>
                                   <option value="Mutton">Mutton</option>
                                   <option value="Other">Other</option>
                                 </select>
                               ) : (
-                                <span className="badge bg-secondary">{data.category}</span>
+                                <span className="badge bg-secondary">
+                                  {data.category}
+                                </span>
                               )}
                             </td>
                             <td>
                               {isEditing ? (
-                                <input type="number" min="0" className="form-control" value={draft.price} onChange={(e) => setDrafts(prev => ({ ...prev, [data._id]: { ...prev[data._id], price: Number(e.target.value) } }))} />
+                                <input
+                                  type="number"
+                                  min="0"
+                                  className="form-control"
+                                  value={draft.price}
+                                  onChange={(e) =>
+                                    setDrafts((prev) => ({
+                                      ...prev,
+                                      [data._id]: {
+                                        ...prev[data._id],
+                                        price: Number(e.target.value),
+                                      },
+                                    }))
+                                  }
+                                />
                               ) : (
-                                <span className="fw-bold text-success">₹{data.price}</span>
+                                <span className="fw-bold text-success">
+                                  ₹{data.price}
+                                </span>
                               )}
                             </td>
                             <td>
                               {isEditing ? (
-                                <input type="number" min="0" className="form-control" value={draft.actualprice} onChange={(e) => setDrafts(prev => ({ ...prev, [data._id]: { ...prev[data._id], actualprice: Number(e.target.value) } }))} />
+                                <input
+                                  type="number"
+                                  min="0"
+                                  className="form-control"
+                                  value={draft.actualprice}
+                                  onChange={(e) =>
+                                    setDrafts((prev) => ({
+                                      ...prev,
+                                      [data._id]: {
+                                        ...prev[data._id],
+                                        actualprice: Number(e.target.value),
+                                      },
+                                    }))
+                                  }
+                                />
                               ) : (
-                                <span className="fw-bold text-muted">₹{(data.actual_price || 0).toFixed(2)}</span>
+                                <span className="fw-bold text-muted">
+                                  ₹{(data.actual_price || 0).toFixed(2)}
+                                </span>
                               )}
                             </td>
                             <td>
                               {isEditing ? (
-                                <input type="number" min="0" className="form-control" value={draft.profit} onChange={(e) => setDrafts(prev => ({ ...prev, [data._id]: { ...prev[data._id], profit: Number(e.target.value) } }))} />
+                                <input
+                                  type="number"
+                                  min="0"
+                                  className="form-control"
+                                  value={draft.profit}
+                                  onChange={(e) =>
+                                    setDrafts((prev) => ({
+                                      ...prev,
+                                      [data._id]: {
+                                        ...prev[data._id],
+                                        profit: Number(e.target.value),
+                                      },
+                                    }))
+                                  }
+                                />
                               ) : (
-                                <span className="fw-bold text-primary">₹{(Number(data.profit) || 0).toFixed(2)}</span>
+                                <span className="fw-bold text-primary">
+                                  ₹{(Number(data.profit) || 0).toFixed(2)}
+                                </span>
                               )}
                             </td>
+
+                            {/* Admin Buttons */}
                             {isAdmin && (
-                              <td>
-                                {isEditing ? (
-                                  <div style={{ display: 'flex', gap: 8 }}>
-                                    <button className="btn btn-sm btn-success" onClick={saveEdit}>Save</button>
-                                    <button className="btn btn-sm btn-secondary" onClick={cancelEdit}>Cancel</button>
-                                  </div>
-                                ) : (
-                                  <button className="btn btn-sm" onClick={startEdit} style={{ borderRadius: "20px", padding: "6px 14px", background: "linear-gradient(135deg, #22c55e, #16a34a)", color: "#fff", fontWeight: "600", border: "none" }}>
-                                    ✏️ Edit
+                              <>
+                                <td>
+                                  {isEditing ? (
+                                    <div style={{ display: "flex", gap: 8 }}>
+                                      <button
+                                        className="btn btn-sm btn-success"
+                                        onClick={saveEdit}
+                                      >
+                                        Save
+                                      </button>
+                                      <button
+                                        className="btn btn-sm btn-secondary"
+                                        onClick={cancelEdit}
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      className="btn btn-sm"
+                                      onClick={startEdit}
+                                      style={{
+                                        borderRadius: "20px",
+                                        padding: "6px 14px",
+                                        background:
+                                          "linear-gradient(135deg, #22c55e, #16a34a)",
+                                        color: "#fff",
+                                        fontWeight: "600",
+                                        border: "none",
+                                      }}
+                                    >
+                                      ✏️ Edit
+                                    </button>
+                                  )}
+                                </td>
+                                <td>
+                                  <button
+                                    className="btn btn-sm btn-danger"
+                                    onClick={() => handleDelete(data._id)}
+                                    style={{
+                                      borderRadius: "20px",
+                                      padding: "6px 14px",
+                                      fontWeight: "600",
+                                    }}
+                                  >
+                                    🗑️ Delete
                                   </button>
-                                )}
-                              </td>
+                                </td>
+                              </>
                             )}
                           </tr>
                         );
@@ -222,7 +380,7 @@ export default function Product() {
                 </table>
               </div>
 
-              {/* If no products match search */}
+              {/* If no products found */}
               {product.filter((item) =>
                 item.name.toLowerCase().includes(search.toLowerCase())
               ).length === 0 && (
@@ -239,3 +397,4 @@ export default function Product() {
     </>
   );
 }
+
