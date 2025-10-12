@@ -489,6 +489,22 @@ export default function ViewBills() {
     return Math.round(sum * 100) / 100;
   };
 
+  // Get total delivery charges for selected month
+  const getSelectedMonthDeliveryCharges = () => {
+    const month = selectedMonth || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+    const monthlyBills = bills.filter(bill => {
+      const dateParts = (bill.Date || '').split('/');
+      if (dateParts.length !== 3) return false;
+      const day = parseInt(dateParts[0], 10);
+      const monthNum = parseInt(dateParts[1], 10);
+      const year = parseInt(dateParts[2], 10);
+      const billYearMonth = `${year}-${String(monthNum).padStart(2, '0')}`;
+      return billYearMonth === month;
+    });
+
+    return monthlyBills.reduce((s, b) => s + (Number(b.deliveryCharge) || 0), 0);
+  };
+
   // Get aggregated profitByCategory for selected month (returns array)
   const getSelectedMonthProfitByCategory = () => {
     const month = selectedMonth || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
@@ -606,12 +622,18 @@ export default function ViewBills() {
             {/* Profit by category: single-line, scrollable */}
             {monthProfitByCategory.length > 0 && (
               <div style={{ marginTop: '10px' }}>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'nowrap', justifyContent: 'space-between', alignItems: 'center', overflow: 'hidden' }}>
-                  {monthProfitByCategory.map((c) => (
-                    <div key={c.category} title={`${c.category}: ₹${c.amount.toFixed(2)}`} style={{ background: '#ffffff', padding: '4px 6px', borderRadius: '8px', border: '1px solid #e6fffa', color: '#22543d', fontWeight: 600, fontSize: '0.72rem', flex: '1 1 0', minWidth: 0, textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {c.category}: ₹{c.amount.toFixed(2)}
-                    </div>
-                  ))}
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ fontWeight: 700, color: '#22543d', marginBottom: 6 }}>Profit by Category</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {monthProfitByCategory.map((c) => (
+                      <div key={c.category} title={`${c.category}: ₹${c.amount.toFixed(2)}`} style={{ background: '#ffffff', padding: '6px 8px', borderRadius: '8px', border: '1px solid #e6fffa', color: '#22543d', fontWeight: 600, fontSize: '0.85rem' }}>
+                        {c.category}: ₹{c.amount.toFixed(2)}
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop: 10, fontSize: '0.95rem', color: '#2f855a' }}>
+                    <strong>Delivery Charges:</strong> ₹{getSelectedMonthDeliveryCharges().toFixed(2)}
+                  </div>
                 </div>
               </div>
             )}
@@ -800,12 +822,16 @@ export default function ViewBills() {
               <strong>Profit:</strong> (&#8377;){displayedBills.reduce((s,b) => s + computeBillProfit(b).totalProfit, 0).toFixed(2)}
               {displayedProfitByCategory.length > 0 && (
                 <div style={{ marginTop: '8px', width: '100%' }}>
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'nowrap', justifyContent: 'space-between', alignItems: 'center', overflow: 'hidden' }}>
+                  <div style={{ fontWeight: 700, color: '#22543d', marginBottom: 6 }}>Profit by Category</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     {displayedProfitByCategory.map(c => (
-                      <div key={c.category} style={{ background: '#fff', padding: '4px 6px', borderRadius: '8px', border: '1px solid #bee3f8', color: '#22543d', fontWeight: 600, fontSize: '0.72rem', flex: '1 1 0', minWidth: 0, textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <div key={c.category} style={{ background: '#fff', padding: '6px 8px', borderRadius: '8px', border: '1px solid #bee3f8', color: '#22543d', fontWeight: 600, fontSize: '0.85rem' }}>
                         {c.category}: ₹{c.amount.toFixed(2)}
                       </div>
                     ))}
+                  </div>
+                  <div style={{ marginTop: 10, fontSize: '0.95rem', color: '#2f855a' }}>
+                    <strong>Delivery Charges:</strong> ₹{displayedBills.reduce((s,b) => s + (Number(b.deliveryCharge)||0), 0).toFixed(2)}
                   </div>
                 </div>
               )}

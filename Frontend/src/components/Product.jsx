@@ -42,6 +42,10 @@ export default function Product() {
   const shouldShowContent = localStorage.getItem("authToken") || viewMode;
   const isAdmin = localStorage.getItem("admin") === "true"; // ✅ check admin
 
+  // Inline editing state (one row at a time)
+  const [editingRowId, setEditingRowId] = useState(null);
+  const [drafts, setDrafts] = useState({});
+
   console.log(isAdmin);
 
   return (
@@ -118,71 +122,102 @@ export default function Product() {
                       .filter((item) =>
                         item.name.toLowerCase().includes(search.toLowerCase())
                       )
-                      .map((data, index) => (
-                        <tr key={data._id}>
-                          <td>
-                            <b>{index + 1}</b>
-                          </td>
-                          <td>{data.name}</td>
-                          <td>
-                            <span className="badge bg-secondary">
-                              {data.category}
-                            </span>
-                          </td>
-                          <td>
-                            <span className="fw-bold text-success">
-                              ₹{data.price}
-                            </span>
-                          </td>
-                          <td>
-                            <span className="fw-bold text-muted">
-                              ₹{(data.actual_price || 0).toFixed(2)}
-                            </span>
-                          </td>
-                          <td>
-                            <span className="fw-bold text-primary">
-                              ₹{(Number(data.profit) || 0).toFixed(2)}
-                            </span>
-                          </td>
-                          {isAdmin && (
+                      .map((data, index) => {
+                        const isEditing = editingRowId === data._id;
+                        const draft = drafts[data._id] || {
+                          name: data.name,
+                          category: data.category,
+                          price: data.price,
+                          actualprice: data.actual_price ?? 0,
+                          profit: data.profit ?? 0,
+                        };
+
+                        const startEdit = () => {
+                          setEditingRowId(data._id);
+                          setDrafts(prev => ({ ...prev, [data._id]: { name: data.name, category: data.category, price: data.price, actualprice: data.actual_price ?? 0, profit: data.profit ?? 0 } }));
+                        };
+
+                        const cancelEdit = () => {
+                          setEditingRowId(null);
+                          setDrafts(prev => { const copy = { ...prev }; delete copy[data._id]; return copy; });
+                        };
+
+                        const saveEdit = async () => {
+                          try {
+                            const d = drafts[data._id];
+                            const payload = { name: d.name, category: d.category, price: d.price, profit: d.profit, actual_price: d.actualprice };
+                            await axios.put(`/product/update/${data._id}`, payload);
+                            // update local product list
+                            setProduct(prev => prev.map(p => p._id === data._id ? { ...p, ...payload } : p));
+                            setEditingRowId(null);
+                            setDrafts(prev => { const copy = { ...prev }; delete copy[data._id]; return copy; });
+                          } catch (err) {
+                            console.error('Error updating product', err);
+                            alert('Failed to update product: ' + (err.response?.data?.message || err.message));
+                          }
+                        };
+
+                        return (
+                          <tr key={data._id}>
+                            <td><b>{index + 1}</b></td>
                             <td>
-                              <button
-                                className="btn btn-sm"
-                                style={{
-                                  borderRadius: "20px",
-                                  padding: "6px 14px",
-                                  background:
-                                    "linear-gradient(135deg, #22c55e, #16a34a)",
-                                  color: "#fff",
-                                  fontWeight: "600",
-                                  border: "none",
-                                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
-                                  transition: "all 0.3s ease",
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.target.style.transform = "scale(1.05)";
-                                  e.target.style.boxShadow =
-                                    "0 6px 20px rgba(0,0,0,0.3)";
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.target.style.transform = "scale(1)";
-                                  e.target.style.boxShadow =
-                                    "0 4px 12px rgba(0,0,0,0.2)";
-                                }}
-                                onClick={() => {
-                                  localStorage.setItem(
-                                    "product",
-                                    JSON.stringify(data)
-                                  );
-                                  navigate("/editproduct");
-                                }}
-                              >
-                                ✏️ Edit
-                              </button>
+                              {isEditing ? (
+                                <input className="form-control" value={draft.name} onChange={(e) => setDrafts(prev => ({ ...prev, [data._id]: { ...prev[data._id], name: e.target.value } }))} />
+                              ) : (
+                                data.name
+                              )}
                             </td>
-                          )}
-                        </tr>
-                      ))}
+                            <td>
+                              {isEditing ? (
+                                <select className="form-select" value={draft.category} onChange={(e) => setDrafts(prev => ({ ...prev, [data._id]: { ...prev[data._id], category: e.target.value } }))}>
+                                  <option value={"Vegetable"}>Vegetable</option>
+                                  <option value="Chicken">Chicken</option>
+                                  <option value="Beef">Beef</option>
+                                  <option value="Mutton">Mutton</option>
+                                  <option value="Other">Other</option>
+                                </select>
+                              ) : (
+                                <span className="badge bg-secondary">{data.category}</span>
+                              )}
+                            </td>
+                            <td>
+                              {isEditing ? (
+                                <input type="number" min="0" className="form-control" value={draft.price} onChange={(e) => setDrafts(prev => ({ ...prev, [data._id]: { ...prev[data._id], price: Number(e.target.value) } }))} />
+                              ) : (
+                                <span className="fw-bold text-success">₹{data.price}</span>
+                              )}
+                            </td>
+                            <td>
+                              {isEditing ? (
+                                <input type="number" min="0" className="form-control" value={draft.actualprice} onChange={(e) => setDrafts(prev => ({ ...prev, [data._id]: { ...prev[data._id], actualprice: Number(e.target.value) } }))} />
+                              ) : (
+                                <span className="fw-bold text-muted">₹{(data.actual_price || 0).toFixed(2)}</span>
+                              )}
+                            </td>
+                            <td>
+                              {isEditing ? (
+                                <input type="number" min="0" className="form-control" value={draft.profit} onChange={(e) => setDrafts(prev => ({ ...prev, [data._id]: { ...prev[data._id], profit: Number(e.target.value) } }))} />
+                              ) : (
+                                <span className="fw-bold text-primary">₹{(Number(data.profit) || 0).toFixed(2)}</span>
+                              )}
+                            </td>
+                            {isAdmin && (
+                              <td>
+                                {isEditing ? (
+                                  <div style={{ display: 'flex', gap: 8 }}>
+                                    <button className="btn btn-sm btn-success" onClick={saveEdit}>Save</button>
+                                    <button className="btn btn-sm btn-secondary" onClick={cancelEdit}>Cancel</button>
+                                  </div>
+                                ) : (
+                                  <button className="btn btn-sm" onClick={startEdit} style={{ borderRadius: "20px", padding: "6px 14px", background: "linear-gradient(135deg, #22c55e, #16a34a)", color: "#fff", fontWeight: "600", border: "none" }}>
+                                    ✏️ Edit
+                                  </button>
+                                )}
+                              </td>
+                            )}
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>
