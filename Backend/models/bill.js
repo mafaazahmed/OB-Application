@@ -29,6 +29,11 @@ const billSchema = new Schema ({
                     type: Number,
                     required: false,
                     default: 0
+                },
+                size: { // Added size field to product sub-schema
+                    type: String,
+                    required: true, // Not strictly required if some products don't have size
+                    default: "1kg"
                 }
     }],
     deliveryCharge : {
@@ -50,6 +55,18 @@ const billSchema = new Schema ({
             required: true
         },
         amount: {
+            type: Number,
+            required: true,
+            default: 0
+        }
+    }],
+    kgsSold: [{
+        category: {
+            type: String,
+            required: true,
+            enum: ['Chicken', 'Beef', 'Mutton']
+        },
+        kg: { // Changed from 'amount' to 'kg'
             type: Number,
             required: true,
             default: 0

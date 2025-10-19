@@ -166,6 +166,7 @@ export default function Bill() {
       // include category and profit if available so aggregation works correctly
       category: data.category || 'other',
       profit: Number(data.profit) || 0,
+      size: data.size || "1kg", // Include size with default
     };
 
     const existingProduct = products.find((p) => p._id === newProduct._id);
@@ -226,6 +227,7 @@ export default function Bill() {
         return {
           ...p,
           profit: Math.round(lineProfit * 100) / 100,
+          size: p.size, // Ensure size is passed to backend
         };
       });
 

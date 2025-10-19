@@ -2,6 +2,22 @@ const express = require("express");
 const router = express.Router();
 const Bill = require('../models/bill');
 
+// Regex to extract common size patterns (e.g., "1/2", "1.5", "200") and their units ("kg" or "gm")
+const sizeRegex = /((\d{1,2}\/\d{1,2})|(\d+(\.\d+)?))\s*(kg|gm)/i;
+
+const convertToKgs = (numericPart, unit) => {
+  unit = unit.toLowerCase().trim();
+  if (unit === 'kg') {
+    if (numericPart.includes('/')) {
+      const parts = numericPart.split('/');
+      return parseFloat(parts[0]) / parseFloat(parts[1]);
+    }
+    return parseFloat(numericPart);
+  } else if (unit === 'gm') {
+    return parseFloat(numericPart) / 1000;
+  }
+  return 0;
+};
 
 router.get('/show', async (req,res) => {
      try {
@@ -53,16 +69,68 @@ router.post("/createBill", async (req, res) => {
       });
     }
 
+    // Calculate kgsSold based on products, their quantity, and size
+    let chickenKgs = 0;
+    let beefKgs = 0;
+    let muttonKgs = 0;
+
+    products.forEach(product => {
+      const productName = product.name.toLowerCase();
+      const quantity = Number(product.quantity) || 0;
+      const productSize = product.size; // Assuming size is directly available now
+
+      // Prioritize product.size if available. Otherwise, attempt to extract from productName.
+      let numericPartFromMatch = null;
+      let unitFromMatch = null;
+
+      if (productSize) {
+        const sizeMatch = productSize.match(sizeRegex);
+        if (sizeMatch) {
+          numericPartFromMatch = sizeMatch[2] || sizeMatch[3];
+          unitFromMatch = sizeMatch[5];
+        }
+      } else if (productName.includes('.')) { // Keep exclusion for products with dot if size is not provided
+        return; // Skip this product for kg calculation if no explicit size and name contains dot
+      } else {
+        const nameSizeMatch = productName.match(sizeRegex);
+        if (nameSizeMatch) {
+          numericPartFromMatch = nameSizeMatch[2] || nameSizeMatch[3];
+          unitFromMatch = nameSizeMatch[5];
+        }
+      }
+
+      if (numericPartFromMatch && unitFromMatch) {
+        const kgs = convertToKgs(numericPartFromMatch, unitFromMatch) * quantity;
+
+        if (productName.includes('chicken')) {
+          chickenKgs += kgs;
+        } else if (productName.includes('beef')) {
+          beefKgs += kgs;
+        } else if (productName.includes('mutton')) {
+          if (productName.includes('ghat kaliji')) {
+            return;
+          }
+          muttonKgs += kgs;
+        }
+      }
+    });
+
+    const kgsSold = [];
+    if (chickenKgs > 0) kgsSold.push({ category: 'Chicken', kg: Math.round(chickenKgs * 100) / 100 });
+    if (beefKgs > 0) kgsSold.push({ category: 'Beef', kg: Math.round(beefKgs * 100) / 100 });
+    if (muttonKgs > 0) kgsSold.push({ category: 'Mutton', kg: Math.round(muttonKgs * 100) / 100 });
+
     // ✅ Directly save bill from frontend (no calculations)
     console.log(profit);
     const newBill = await Bill.create({
       order_id,
-      products,
+      products: products.map(p => ({ ...p, size: p.size || "1kg" })), // Ensure size is stored in bill products
       deliveryCharge,
       total,
       profitByCategory,
       profit,
       Date : billDate,
+      kgsSold, // Add calculated kgsSold to the bill
     });
 
     console.log("✅ Bill saved successfully for order:", newBill.order_id);

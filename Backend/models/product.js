@@ -24,6 +24,11 @@ const productSchema = new Schema ({
         type : Number,
         required : true,
         default : 0
+    },
+    size : {
+        type : String,
+        required : true,
+        default : "1kg"
     }
 })
 

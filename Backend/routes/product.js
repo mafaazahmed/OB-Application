@@ -21,7 +21,8 @@ router.post("/add", async (req, res) => {
       price: req.body.price,
       category: req.body.category,
       profit : req.body.profit,
-      actual_price : req.body.actual_price
+      actual_price : req.body.actual_price,
+      size : req.body.size // Add size field
     });
     res.json({ success: true });
   } catch (error) {

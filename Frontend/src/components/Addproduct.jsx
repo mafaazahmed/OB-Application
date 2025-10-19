@@ -12,6 +12,7 @@ export default function Addproduct() {
     category: "vegetable",
     profit: 0,
     actualprice: 0,
+    size: "1kg", // Added size field with default
   });
 
   const [error, setError] = useState(""); // For validation alert
@@ -29,9 +30,9 @@ export default function Addproduct() {
 
     try {
   // send actualprice as actual_price to match backend schema
-  let res = await axios.post("/product/add", { ...product, actual_price: product.actualprice });
+    let res = await axios.post("/product/add", { ...product, actual_price: product.actualprice });
       console.log(res);
-  setProduct({ name: "", price: 0, category: "Vegetable", profit: 0, actualprice: 0 });
+  setProduct({ name: "", price: 0, category: "Vegetable", profit: 0, actualprice: 0, size: "1kg" }); // Reset size on submit
       navigate("/product");
     } catch (err) {
       console.error(err);
@@ -138,6 +139,68 @@ export default function Addproduct() {
                       <option value="Beef">Beef</option>
                       <option value="Mutton">Mutton</option>
                       <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  {/* Size Dropdown */}
+                  <div className="mb-4">
+                    <label
+                      htmlFor="size"
+                      className="form-label fw-semibold"
+                      style={{
+                        color: "#2d3748",
+                        fontSize: "0.95rem",
+                      }}
+                    >
+                      <i
+                        className="fa-solid fa-weight-hanging me-2"
+                        style={{ color: "#22c55e" }}
+                      ></i>
+                      Size
+                    </label>
+                    <select
+                      className="form-select"
+                      aria-label="Default select example"
+                      id="size"
+                      name="size"
+                      value={product.size}
+                      onChange={onChange}
+                      style={{
+                        borderRadius: "8px",
+                        border: "1px solid #e2e8f0",
+                        padding: "12px 16px",
+                        fontSize: "0.95rem",
+                      }}
+                    >
+                      <option value="1kg">1kg</option>
+                      <option value="1.1kg">1.1kg</option>
+                      <option value="1.2kg">1.2kg</option>
+                      <option value="1.3kg">1.3kg</option>
+                      <option value="1.4kg">1.4kg</option>
+                      <option value="1.5kg">1.5kg</option>
+                      <option value="1.6kg">1.6kg</option>
+                      <option value="1.7kg">1.7kg</option>
+                      <option value="1.8kg">1.8kg</option>
+                      <option value="1.9kg">1.9kg</option>
+                      <option value="2.1kg">2.1kg</option>
+                      <option value="2.2kg">2.2kg</option>
+                      <option value="2.3kg">2.3kg</option>
+                      <option value="2.4kg">2.4kg</option>
+                      <option value="2.5kg">2.5kg</option>
+                      <option value="2.6kg">2.6kg</option>
+                      <option value="2.7kg">2.7kg</option>
+                      <option value="2.8kg">2.8kg</option>
+                      <option value="2.9kg">2.9kg</option>
+                      <option value="3kg">3kg</option>
+                      <option value="1/2kg">1/2kg</option>
+                      <option value="1/4kg">1/4kg</option>
+                      <option value="3/4kg">3/4kg</option>
+                      <option value="100gm">100gm</option>
+                      <option value="150gm">150gm</option>
+                      <option value="200gm">200gm</option>
+                      <option value="300gm">300gm</option>
+                      <option value="350gm">350gm</option>
+                      <option value="400gm">400gm</option>
                     </select>
                   </div>
 
