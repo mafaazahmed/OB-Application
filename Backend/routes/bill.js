@@ -209,4 +209,152 @@ router.post('/checkId', async (req, res) => {
   }
 });
 
+// Calculate kgs for Chicken, Beef, and Mutton from bill products
+router.post('/calculateKgs', async (req, res) => {
+  try {
+    const { billObject } = req.body;
+    
+    if (!billObject || !billObject.products || !Array.isArray(billObject.products)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid bill object or missing products array'
+      });
+    }
+
+    // Initialize variables for total kgs
+    let chickenKgs = 0;
+    let beefKgs = 0;
+    let muttonKgs = 0;
+
+    // Helper function to convert size to kgs
+    const convertToKgs = (size) => {
+      size = size.toLowerCase().trim();
+      
+      // Handle kg sizes
+      if (size.includes('1kg')) return 1;
+      if (size.includes('3/4kg')) return 0.75;
+      if (size.includes('1/2kg')) return 0.5;
+      if (size.includes('1/4kg')) return 0.25;
+      
+      // Handle gram sizes for mutton
+      if (size.includes('100gm')) return 0.1;
+      if (size.includes('150gm')) return 0.15;
+      if (size.includes('200gm')) return 0.2;
+      if (size.includes('300gm')) return 0.3;
+      if (size.includes('350gm')) return 0.35;
+      if (size.includes('400gm')) return 0.4;
+      
+      return 0;
+    };
+
+    // Process each product in the bill
+    billObject.products.forEach(product => {
+      const productName = product.name.toLowerCase();
+      const quantity = product.quantity || 0;
+      
+      // Extract size from product name
+      let size = '';
+      
+      // Check for Chicken products
+      if (productName.includes('chicken')) {
+        if (productName.includes('boneless')) {
+          // Extract size for boneless chicken
+          if (productName.includes('1kg')) size = '1kg';
+          else if (productName.includes('3/4kg')) size = '3/4kg';
+          else if (productName.includes('1/2kg')) size = '1/2kg';
+          else if (productName.includes('1/4kg')) size = '1/4kg';
+        } else {
+          // Extract size for regular chicken
+          if (productName.includes('1kg')) size = '1kg';
+          else if (productName.includes('3/4kg')) size = '3/4kg';
+          else if (productName.includes('1/2kg')) size = '1/2kg';
+          else if (productName.includes('1/4kg')) size = '1/4kg';
+        }
+        
+        if (size) {
+          chickenKgs += convertToKgs(size) * quantity;
+        }
+      }
+      
+      // Check for Beef products
+      else if (productName.includes('beef')) {
+        if (productName.includes('boneless')) {
+          // Extract size for boneless beef
+          if (productName.includes('1kg')) size = '1kg';
+          else if (productName.includes('3/4kg')) size = '3/4kg';
+          else if (productName.includes('1/2kg')) size = '1/2kg';
+          else if (productName.includes('1/4kg')) size = '1/4kg';
+        } else {
+          // Extract size for regular beef
+          if (productName.includes('1kg')) size = '1kg';
+          else if (productName.includes('3/4kg')) size = '3/4kg';
+          else if (productName.includes('1/2kg')) size = '1/2kg';
+          else if (productName.includes('1/4kg')) size = '1/4kg';
+        }
+        
+        if (size) {
+          beefKgs += convertToKgs(size) * quantity;
+        }
+      }
+      
+      // Check for Mutton products
+      else if (productName.includes('mutton')) {
+        if (productName.includes('boneless')) {
+          // Extract size for boneless mutton
+          if (productName.includes('1kg')) size = '1kg';
+          else if (productName.includes('3/4kg')) size = '3/4kg';
+          else if (productName.includes('1/2kg')) size = '1/2kg';
+          else if (productName.includes('1/4kg')) size = '1/4kg';
+          else if (productName.includes('100gm')) size = '100gm';
+          else if (productName.includes('150gm')) size = '150gm';
+          else if (productName.includes('200gm')) size = '200gm';
+          else if (productName.includes('300gm')) size = '300gm';
+          else if (productName.includes('350gm')) size = '350gm';
+          else if (productName.includes('400gm')) size = '400gm';
+        } else {
+          // Extract size for regular mutton
+          if (productName.includes('1kg')) size = '1kg';
+          else if (productName.includes('3/4kg')) size = '3/4kg';
+          else if (productName.includes('1/2kg')) size = '1/2kg';
+          else if (productName.includes('1/4kg')) size = '1/4kg';
+          else if (productName.includes('100gm')) size = '100gm';
+          else if (productName.includes('150gm')) size = '150gm';
+          else if (productName.includes('200gm')) size = '200gm';
+          else if (productName.includes('300gm')) size = '300gm';
+          else if (productName.includes('350gm')) size = '350gm';
+          else if (productName.includes('400gm')) size = '400gm';
+        }
+        
+        if (size) {
+          muttonKgs += convertToKgs(size) * quantity;
+        }
+      }
+    });
+
+    // Round to 2 decimal places
+    chickenKgs = Math.round(chickenKgs * 100) / 100;
+    beefKgs = Math.round(beefKgs * 100) / 100;
+    muttonKgs = Math.round(muttonKgs * 100) / 100;
+
+    return res.status(200).json({
+      success: true,
+      message: 'Kgs calculated successfully',
+      data: {
+        chickenKgs,
+        beefKgs,
+        muttonKgs,
+        totalKgs: Math.round((chickenKgs + beefKgs + muttonKgs) * 100) / 100
+      }
+    });
+
+  } catch (error) {
+    console.error('Error calculating kgs:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error calculating kgs',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
+    });
+  }
+});
+
 module.exports = router;

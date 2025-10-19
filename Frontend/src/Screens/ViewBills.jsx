@@ -468,6 +468,66 @@ export default function ViewBills() {
     return { totalProfit, profitByCategoryMap: categoryMap };
   };
 
+  // Helper function for kg calculation (ported from Backend/test-kgs-calculation.js)
+  const calculateKgs = (billObject) => {
+    let chickenKgs = 0;
+    let beefKgs = 0;
+    let muttonKgs = 0;
+
+    // Regex to extract common size patterns (e.g., "1/2", "1.5", "200") and their units ("kg" or "gm")
+    const sizeRegex = /((\d{1,2}\/\d{1,2})|(\d+(\.\d+)?))\s*(kg|gm)/i;
+
+    const convertToKgs = (numericPart, unit) => {
+      unit = unit.toLowerCase().trim();
+      if (unit === 'kg') {
+        if (numericPart.includes('/')) {
+          const parts = numericPart.split('/');
+          return parseFloat(parts[0]) / parseFloat(parts[1]);
+        }
+        return parseFloat(numericPart);
+      } else if (unit === 'gm') {
+        return parseFloat(numericPart) / 1000;
+      }
+      return 0;
+    };
+
+    billObject.products.forEach(product => {
+      const productName = product.name.toLowerCase();
+      const quantity = Number(product.quantity) || 0;
+
+      const sizeMatch = productName.match(sizeRegex);
+
+      if (sizeMatch) {
+        const numericPart = sizeMatch[2] || sizeMatch[3]; // Corrected: Group 3 for decimal/integer
+        const unit = sizeMatch[5]; // Corrected: Group 5 for unit
+
+        const kgs = convertToKgs(numericPart, unit) * quantity;
+
+        if (productName.includes('chicken')) {
+          chickenKgs += kgs;
+        } else if (productName.includes('beef')) {
+          beefKgs += kgs;
+        } else if (productName.includes('mutton')) {
+          if (productName.includes('ghat kaliji')) {
+            return;
+          }
+          muttonKgs += kgs;
+        }
+      }
+    });
+
+    chickenKgs = Math.round(chickenKgs * 100) / 100;
+    beefKgs = Math.round(beefKgs * 100) / 100;
+    muttonKgs = Math.round(muttonKgs * 100) / 100;
+
+    return {
+      chickenKgs,
+      beefKgs,
+      muttonKgs,
+      totalKgs: Math.round((chickenKgs + beefKgs + muttonKgs) * 100) / 100
+    };
+  };
+
   // Get profit for selected month
   const getSelectedMonthProfit = () => {
     const month = selectedMonth || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
@@ -529,6 +589,42 @@ export default function ViewBills() {
     return Object.keys(agg).map(k => ({ category: k, amount: agg[k] }));
   };
 
+  // Get aggregated kgs for selected month (returns { chickenKgs, beefKgs, muttonKgs, totalKgs })
+  const getSelectedMonthKgs = () => {
+    const month = selectedMonth || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+    const monthlyBills = bills.filter(bill => {
+      const dateParts = (bill.Date || '').split('/');
+      if (dateParts.length !== 3) return false;
+      const day = parseInt(dateParts[0], 10);
+      const monthNum = parseInt(dateParts[1], 10);
+      const year = parseInt(dateParts[2], 10);
+      const billYearMonth = `${year}-${String(monthNum).padStart(2, '0')}`;
+      return billYearMonth === month;
+    });
+
+    let chickenKgs = 0;
+    let beefKgs = 0;
+    let muttonKgs = 0;
+
+    monthlyBills.forEach(bill => {
+      const { chickenKgs: billChicken, beefKgs: billBeef, muttonKgs: billMutton } = calculateKgs(bill);
+      chickenKgs += billChicken;
+      beefKgs += billBeef;
+      muttonKgs += billMutton;
+    });
+
+    chickenKgs = Math.round(chickenKgs * 100) / 100;
+    beefKgs = Math.round(beefKgs * 100) / 100;
+    muttonKgs = Math.round(muttonKgs * 100) / 100;
+
+    return {
+      chickenKgs,
+      beefKgs,
+      muttonKgs,
+      totalKgs: Math.round((chickenKgs + beefKgs + muttonKgs) * 100) / 100
+    };
+  };
+
   // Calculate turnover for selected month
   const getSelectedMonthTurnover = () => {
     if (!selectedMonth) return getCurrentMonthTurnover();
@@ -585,6 +681,31 @@ export default function ViewBills() {
     return Object.keys(agg).map(k => ({ category: k, amount: agg[k] }));
   }, [displayedBills]);
 
+  // Memoized kgs for currently displayed bills
+  const displayedKgs = useMemo(() => {
+    let chickenKgs = 0;
+    let beefKgs = 0;
+    let muttonKgs = 0;
+
+    (displayedBills || []).forEach(bill => {
+      const { chickenKgs: billChicken, beefKgs: billBeef, muttonKgs: billMutton } = calculateKgs(bill);
+      chickenKgs += billChicken;
+      beefKgs += billBeef;
+      muttonKgs += billMutton;
+    });
+
+    chickenKgs = Math.round(chickenKgs * 100) / 100;
+    beefKgs = Math.round(beefKgs * 100) / 100;
+    muttonKgs = Math.round(muttonKgs * 100) / 100;
+
+    return {
+      chickenKgs,
+      beefKgs,
+      muttonKgs,
+      totalKgs: Math.round((chickenKgs + beefKgs + muttonKgs) * 100) / 100
+    };
+  }, [displayedBills]);
+
   return (
     <>
       <Navbar />
@@ -633,6 +754,23 @@ export default function ViewBills() {
                   </div>
                   <div style={{ marginTop: 10, fontSize: '0.95rem', color: '#2f855a' }}>
                     <strong>Delivery Charges:</strong> ₹{getSelectedMonthDeliveryCharges().toFixed(2)}
+                  </div>
+                </div>
+              </div>
+            )}
+            {/* Monthly Kgs Display */}
+            {getSelectedMonthKgs().totalKgs > 0 && (
+              <div style={{ marginTop: '10px'}}>
+                <div style={{ fontWeight: 700, color: '#22543d', marginBottom: 6 }}>Kgs by Category</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ background: '#ffffff', padding: '6px 8px', borderRadius: '8px', border: '1px solid #e6fffa', color: '#22543d', fontWeight: 600, fontSize: '0.85rem' }}>
+                    Chicken: {getSelectedMonthKgs().chickenKgs.toFixed(2)} kg
+                  </div>
+                  <div style={{ background: '#ffffff', padding: '6px 8px', borderRadius: '8px', border: '1px solid #e6fffa', color: '#22543d', fontWeight: 600, fontSize: '0.85rem' }}>
+                    Beef: {getSelectedMonthKgs().beefKgs.toFixed(2)} kg
+                  </div>
+                  <div style={{ background: '#ffffff', padding: '6px 8px', borderRadius: '8px', border: '1px solid #e6fffa', color: '#22543d', fontWeight: 600, fontSize: '0.85rem' }}>
+                    Mutton: {getSelectedMonthKgs().muttonKgs.toFixed(2)} kg
                   </div>
                 </div>
               </div>
@@ -835,6 +973,22 @@ export default function ViewBills() {
                   </div>
                 </div>
               )}
+              {displayedKgs.totalKgs > 0 && (
+                <div style={{ marginTop: '10px', width: '100%' }}>
+                  <div style={{ fontWeight: 700, color: '#22543d', marginBottom: 6 }}>Kgs by Category</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ background: '#fff', padding: '6px 8px', borderRadius: '8px', border: '1px solid #bee3f8', color: '#22543d', fontWeight: 600, fontSize: '0.85rem' }}>
+                      Chicken: {displayedKgs.chickenKgs.toFixed(2)} kg
+                    </div>
+                    <div style={{ background: '#fff', padding: '6px 8px', borderRadius: '8px', border: '1px solid #bee3f8', color: '#22543d', fontWeight: 600, fontSize: '0.85rem' }}>
+                      Beef: {displayedKgs.beefKgs.toFixed(2)} kg
+                    </div>
+                    <div style={{ background: '#fff', padding: '6px 8px', borderRadius: '8px', border: '1px solid #bee3f8', color: '#22543d', fontWeight: 600, fontSize: '0.85rem' }}>
+                      Mutton: {displayedKgs.muttonKgs.toFixed(2)} kg
+                    </div>
+                  </div>
+                </div>
+              )}
         </div>
           )}
 
@@ -898,9 +1052,25 @@ export default function ViewBills() {
                             ))}
                           </div>
                         )}
-                        <div style={{ color: '#718096', fontSize: '0.85rem' }}>
-                          📦 {bill.products.length} items
-                        </div>
+                        {calculateKgs(bill).totalKgs > 0 && (
+                          <div style={{ marginTop: '6px', display: 'flex', gap: '6px', flexWrap: 'nowrap', overflow: 'hidden', alignItems: 'center' }}>
+                            {calculateKgs(bill).chickenKgs > 0 && (
+                              <div title={`Chicken: ${calculateKgs(bill).chickenKgs.toFixed(2)} kg`} style={{ background: '#f7fafc', padding: '3px 6px', borderRadius: '6px', fontSize: '0.7rem', color: '#2d3748', flex: '1 1 0', minWidth: 0, textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                Chk: {calculateKgs(bill).chickenKgs.toFixed(2)} kg
+                              </div>
+                            )}
+                            {calculateKgs(bill).beefKgs > 0 && (
+                              <div title={`Beef: ${calculateKgs(bill).beefKgs.toFixed(2)} kg`} style={{ background: '#f7fafc', padding: '3px 6px', borderRadius: '6px', fontSize: '0.7rem', color: '#2d3748', flex: '1 1 0', minWidth: 0, textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                Bf: {calculateKgs(bill).beefKgs.toFixed(2)} kg
+                              </div>
+                            )}
+                            {calculateKgs(bill).muttonKgs > 0 && (
+                              <div title={`Mutton: ${calculateKgs(bill).muttonKgs.toFixed(2)} kg`} style={{ background: '#f7fafc', padding: '3px 6px', borderRadius: '6px', fontSize: '0.7rem', color: '#2d3748', flex: '1 1 0', minWidth: 0, textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                Mut: {calculateKgs(bill).muttonKgs.toFixed(2)} kg
+                              </div>
+                            )}
+                          </div>
+                        )}
                         <div style={{ 
                           color: bill.status === 'Cash' ? '#38a169' : 
                                 bill.status === 'Online' ? '#3182ce' : '#d69e2e', 
