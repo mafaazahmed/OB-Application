@@ -100,9 +100,14 @@ router.post("/createBill", async (req, res) => {
       if (numericPartFromMatch && unitFromMatch && productCategory) {
         const kgs = convertToKgs(numericPartFromMatch, unitFromMatch) * quantity;
 
-        // Accumulate kgs for the specific category
-        if (kgs > 0) {
-            const categoryKey = productCategory; // Removed normalization, use productCategory directly
+        // Only accumulate kgs for relevant meat categories
+        const lowerCaseCategory = productCategory.toLowerCase();
+        if (kgs > 0 && (lowerCaseCategory.includes('chicken') || lowerCaseCategory.includes('beef') || lowerCaseCategory.includes('mutton'))) {
+            // Apply specific exclusion for "ghat kaliji" only if it's a mutton category
+            if (lowerCaseCategory.includes('mutton') && productName.includes('ghat kaliji')) {
+                return; // Skip this product for kg calculation
+            }
+            const categoryKey = productCategory; // Use productCategory directly as it matches enum
             kgsByCategoryMap[categoryKey] = (kgsByCategoryMap[categoryKey] || 0) + kgs;
         }
       }
