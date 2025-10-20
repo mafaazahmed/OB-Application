@@ -1,53 +1,53 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
-const billSchema = new Schema ({
-    order_id : {
-        type : String,
-        required : true,
-        unique : true,
+const billSchema = new Schema({
+    order_id: {
+        type: String,
+        required: true,
+        unique: true,
     },
-    products : [{
-        _id : {
-        type : String,
-        required : true
+    products: [{
+        _id: {
+            type: String,
+            required: true
         },
-        name : {
-        type : String,
-        required : true
+        name: {
+            type: String,
+            required: true
         },
-        quantity : {
-        type : Number,
-        required : true
+        quantity: {
+            type: Number,
+            required: true
         },
-        price : {
-        type : Number,
-        required : true 
+        price: {
+            type: Number,
+            required: true
         }
-                ,
-                profit: {
-                    type: Number,
-                    required: false,
-                    default: 0
-                },
-                size: { // Added size field to product sub-schema
-                    type: String,
-                    required: true, // Not strictly required if some products don't have size
-                    default: "1kg"
-                }
+        ,
+        profit: {
+            type: Number,
+            required: false,
+            default: 0
+        },
+        size: { // Added size field to product sub-schema
+            type: String,
+            required: true, // Not strictly required if some products don't have size
+            default: "1kg"
+        }
     }],
-    deliveryCharge : {
-        type : Number,
-        required : true
+    deliveryCharge: {
+        type: Number,
+        required: true
     },
-    total : {
-        type : Number,
-        required : true
+    total: {
+        type: Number,
+        required: true
     },
-    profit : {
-        type : Number,
-        required : true,
-        default : 0
+    profit: {
+        type: Number,
+        required: true,
+        default: 0
     },
     profitByCategory: [{
         category: {
@@ -64,7 +64,7 @@ const billSchema = new Schema ({
         category: {
             type: String,
             required: true,
-            enum: ['Chicken', 'Beef', 'Mutton']
+            enum: ['Chicken', 'Beef', 'Mutton', 'Chicken Boneless', 'Live Chicken', 'Nati Chicken', 'Special Chicken', 'Beef Boneless', 'Mutton Boneless'] // Updated enum
         },
         kg: { // Changed from 'amount' to 'kg'
             type: Number,
@@ -72,17 +72,17 @@ const billSchema = new Schema ({
             default: 0
         }
     }],
-    Date : {
-        type : String,
-        required : true
+    Date: {
+        type: String,
+        required: true
     },
-    status : {
-        type : String,
-        enum : ['Pending', 'Cash', 'Online'],
-        required : true,
-        default : 'Pending',
+    status: {
+        type: String,
+        enum: ['Pending', 'Cash', 'Online'],
+        required: true,
+        default: 'Pending',
     },
-    receivedamount : {
+    receivedamount: {
         type: Number,
         required: true,
         default: 0

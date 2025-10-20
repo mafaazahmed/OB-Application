@@ -69,17 +69,15 @@ router.post("/createBill", async (req, res) => {
       });
     }
 
-    // Calculate kgsSold based on products, their quantity, and size
-    let chickenKgs = 0;
-    let beefKgs = 0;
-    let muttonKgs = 0;
+    // Calculate kgsSold based on products, their quantity, and size for each specific category
+    const kgsByCategoryMap = {};
 
     products.forEach(product => {
       const productName = product.name.toLowerCase();
       const quantity = Number(product.quantity) || 0;
-      const productSize = product.size; // Assuming size is directly available now
+      const productSize = product.size; 
+      const productCategory = product.category; // Get the specific category
 
-      // Prioritize product.size if available. Otherwise, attempt to extract from productName.
       let numericPartFromMatch = null;
       let unitFromMatch = null;
 
@@ -89,8 +87,8 @@ router.post("/createBill", async (req, res) => {
           numericPartFromMatch = sizeMatch[2] || sizeMatch[3];
           unitFromMatch = sizeMatch[5];
         }
-      } else if (productName.includes('.')) { // Keep exclusion for products with dot if size is not provided
-        return; // Skip this product for kg calculation if no explicit size and name contains dot
+      } else if (productName.includes('.')) {
+        return; 
       } else {
         const nameSizeMatch = productName.match(sizeRegex);
         if (nameSizeMatch) {
@@ -99,26 +97,21 @@ router.post("/createBill", async (req, res) => {
         }
       }
 
-      if (numericPartFromMatch && unitFromMatch) {
+      if (numericPartFromMatch && unitFromMatch && productCategory) {
         const kgs = convertToKgs(numericPartFromMatch, unitFromMatch) * quantity;
 
-        if (productName.includes('chicken')) {
-          chickenKgs += kgs;
-        } else if (productName.includes('beef')) {
-          beefKgs += kgs;
-        } else if (productName.includes('mutton')) {
-          if (productName.includes('ghat kaliji')) {
-            return;
-          }
-          muttonKgs += kgs;
+        // Accumulate kgs for the specific category
+        if (kgs > 0) {
+            const categoryKey = productCategory; // Removed normalization, use productCategory directly
+            kgsByCategoryMap[categoryKey] = (kgsByCategoryMap[categoryKey] || 0) + kgs;
         }
       }
     });
 
-    const kgsSold = [];
-    if (chickenKgs > 0) kgsSold.push({ category: 'Chicken', kg: Math.round(chickenKgs * 100) / 100 });
-    if (beefKgs > 0) kgsSold.push({ category: 'Beef', kg: Math.round(beefKgs * 100) / 100 });
-    if (muttonKgs > 0) kgsSold.push({ category: 'Mutton', kg: Math.round(muttonKgs * 100) / 100 });
+    const kgsSold = Object.keys(kgsByCategoryMap).map(cat => ({
+        category: cat,
+        kg: Math.round(kgsByCategoryMap[cat] * 100) / 100
+    }));
 
     // ✅ Directly save bill from frontend (no calculations)
     console.log(profit);
@@ -133,7 +126,7 @@ router.post("/createBill", async (req, res) => {
       kgsSold, // Add calculated kgsSold to the bill
     });
 
-    console.log("✅ Bill saved successfully for order:", newBill.order_id);
+    console.log("✅ Bill saved successfully for order:", newBill);
 
     return res.status(201).json({
       success: true,

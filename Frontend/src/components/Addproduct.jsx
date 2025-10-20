@@ -139,6 +139,12 @@ export default function Addproduct() {
                       <option value="Beef">Beef</option>
                       <option value="Mutton">Mutton</option>
                       <option value="Other">Other</option>
+                      <option value="Chicken Boneless">Chicken Boneless</option>
+                      <option value="Live Chicken">Live Chicken</option>
+                      <option value="Nati Chicken">Nati Chicken</option>
+                      <option value="Special Chicken">Special Chicken</option>
+                      <option value="Beef Boneless">Beef Boneless</option>
+                      <option value="Mutton Boneless">Mutton Boneless</option>
                     </select>
                   </div>
 
