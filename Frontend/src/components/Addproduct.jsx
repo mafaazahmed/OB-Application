@@ -9,7 +9,7 @@ export default function Addproduct() {
   const [product, setProduct] = useState({
     name: "",
     price: 0,
-    category: "vegetable",
+    category: "Vegetable", // Changed to "Vegetable" (capital V)
     profit: 0,
     actualprice: 0,
     size: "1kg", // Added size field with default
