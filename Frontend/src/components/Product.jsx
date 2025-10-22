@@ -55,7 +55,10 @@ export default function Product() {
         navigate("/product");
       } catch (err) {
         console.error("Error deleting product:", err);
-        alert("Failed to delete product: " + (err.response?.data?.message || err.message));
+        alert(
+          "Failed to delete product: " +
+            (err.response?.data?.message || err.message)
+        );
       }
     }
   };
@@ -89,8 +92,7 @@ export default function Product() {
                   (e.target.style.boxShadow = "0 0 8px rgba(128, 0, 128, 0.5)")
                 }
                 onBlur={(e) =>
-                  (e.target.style.boxShadow =
-                    "0 4px 12px rgba(0, 0, 0, 0.1)")
+                  (e.target.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.1)")
                 }
               />
             </div>
@@ -183,7 +185,10 @@ export default function Product() {
                               actual_price: d.actualprice,
                               size: d.size, // Include size in payload
                             };
-                            await axios.put(`/product/update/${data._id}`, payload);
+                            await axios.put(
+                              `/product/update/${data._id}`,
+                              payload
+                            );
                             setProduct((prev) =>
                               prev.map((p) =>
                                 p._id === data._id ? { ...p, ...payload } : p
@@ -248,12 +253,24 @@ export default function Product() {
                                   <option value="Beef">Beef</option>
                                   <option value="Mutton">Mutton</option>
                                   <option value="Other">Other</option>
-                                  <option value="Chicken Boneless">Chicken Boneless</option>
-                                  <option value="Live Chicken">Live Chicken</option>
-                                  <option value="Nati Chicken">Nati Chicken</option>
-                                  <option value="Special Chicken">Special Chicken</option>
-                                  <option value="Beef Boneless">Beef Boneless</option>
-                                  <option value="Mutton Boneless">Mutton Boneless</option>
+                                  <option value="Chicken Boneless">
+                                    Chicken Boneless
+                                  </option>
+                                  <option value="Live Chicken">
+                                    Live Chicken
+                                  </option>
+                                  <option value="Nati Chicken">
+                                    Nati Chicken
+                                  </option>
+                                  <option value="Special Chicken">
+                                    Special Chicken
+                                  </option>
+                                  <option value="Beef Boneless">
+                                    Beef Boneless
+                                  </option>
+                                  <option value="Mutton Boneless">
+                                    Mutton Boneless
+                                  </option>
                                 </select>
                               ) : (
                                 <span className="badge bg-secondary">
@@ -345,35 +362,39 @@ export default function Product() {
                                     }))
                                   }
                                 >
-                                  <option value="1kg">1kg</option>
-                                  <option value="1.1kg">1.1kg</option>
-                                  <option value="1.2kg">1.2kg</option>
-                                  <option value="1.3kg">1.3kg</option>
-                                  <option value="1.4kg">1.4kg</option>
-                                  <option value="1.5kg">1.5kg</option>
-                                  <option value="1.6kg">1.6kg</option>
-                                  <option value="1.7kg">1.7kg</option>
-                                  <option value="1.8kg">1.8kg</option>
-                                  <option value="1.9kg">1.9kg</option>
-                                  <option value="2.1kg">2.1kg</option>
-                                  <option value="2.2kg">2.2kg</option>
-                                  <option value="2.3kg">2.3kg</option>
-                                  <option value="2.4kg">2.4kg</option>
-                                  <option value="2.5kg">2.5kg</option>
-                                  <option value="2.6kg">2.6kg</option>
-                                  <option value="2.7kg">2.7kg</option>
-                                  <option value="2.8kg">2.8kg</option>
-                                  <option value="2.9kg">2.9kg</option>
-                                  <option value="3kg">3kg</option>
-                                  <option value="1/2kg">1/2kg</option>
-                                  <option value="1/4kg">1/4kg</option>
-                                  <option value="3/4kg">3/4kg</option>
                                   <option value="100gm">100gm</option>
                                   <option value="150gm">150gm</option>
                                   <option value="200gm">200gm</option>
                                   <option value="300gm">300gm</option>
                                   <option value="350gm">350gm</option>
                                   <option value="400gm">400gm</option>
+                                  <option value="1/4kg">1/4kg</option>
+                                  <option value="1/2kg">1/2kg</option>
+                                  <option value="3/4kg">3/4kg</option>
+                                  <option value="1kg">1kg</option>
+                                  <option value="1.1kg">1.1kg</option>
+                                  <option value="1.2kg">1.2kg</option>
+                                  <option value="1.25kg">1.25kg</option>
+                                  <option value="1.3kg">1.3kg</option>
+                                  <option value="1.4kg">1.4kg</option>
+                                  <option value="1.5kg">1.5kg</option>
+                                  <option value="1.6kg">1.6kg</option>
+                                  <option value="1.7kg">1.7kg</option>
+                                  <option value="1.75kg">1.75kg</option>
+                                  <option value="1.8kg">1.8kg</option>
+                                  <option value="1.9kg">1.9kg</option>
+                                  <option value="2.1kg">2.1kg</option>
+                                  <option value="2.2kg">2.2kg</option>
+                                  <option value="2.25kg">2.25kg</option>
+                                  <option value="2.3kg">2.3kg</option>
+                                  <option value="2.4kg">2.4kg</option>
+                                  <option value="2.5kg">2.5kg</option>
+                                  <option value="2.6kg">2.6kg</option>
+                                  <option value="2.7kg">2.7kg</option>
+                                  <option value="2.75kg">2.75kg</option>
+                                  <option value="2.8kg">2.8kg</option>
+                                  <option value="2.9kg">2.9kg</option>
+                                  <option value="3kg">3kg</option>
                                 </select>
                               ) : (
                                 <span className="badge bg-info">
@@ -458,4 +479,3 @@ export default function Product() {
     </>
   );
 }
-
