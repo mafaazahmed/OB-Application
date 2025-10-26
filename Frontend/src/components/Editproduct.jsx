@@ -20,8 +20,8 @@ export default function Editproduct() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // map actualprice -> actual_price for backend
-    const payload = { ...product, actual_price: product.actualprice };
+    const calculatedProfit = product.price - product.actualprice;
+    const payload = { ...product, actual_price: product.actualprice, profit: calculatedProfit };
     await axios.put(`/product/update/${productData._id}`, payload);
     navigate("/product");
   };
@@ -34,7 +34,14 @@ export default function Editproduct() {
   const onChange = (e) => {
     const { name, value, type } = e.target;
     const parsed = type === "number" ? Number(value) : value;
-    setProduct({ ...product, [name]: parsed });
+    
+    setProduct(prevProduct => {
+      const updatedProduct = { ...prevProduct, [name]: parsed };
+      if (name === "price" || name === "actualprice") {
+        updatedProduct.profit = updatedProduct.price - updatedProduct.actualprice;
+      }
+      return updatedProduct;
+    });
   };
 
   return (

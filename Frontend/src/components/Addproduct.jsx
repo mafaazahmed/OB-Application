@@ -29,10 +29,10 @@ export default function Addproduct() {
     setError(""); // Clear error if valid
 
     try {
-  // send actualprice as actual_price to match backend schema
-    let res = await axios.post("/product/add", { ...product, actual_price: product.actualprice });
+      const calculatedProfit = product.price - product.actualprice;
+      let res = await axios.post("/product/add", { ...product, actual_price: product.actualprice, profit: calculatedProfit });
       console.log(res);
-  setProduct({ name: "", price: 0, category: "Vegetable", profit: 0, actualprice: 0, size: "1kg" }); // Reset size on submit
+      setProduct({ name: "", price: 0, category: "Vegetable", profit: 0, actualprice: 0, size: "1kg" }); // Reset size on submit
       navigate("/product");
     } catch (err) {
       console.error(err);
@@ -43,7 +43,14 @@ export default function Addproduct() {
   const onChange = (e) => {
     const { name, value, type } = e.target;
     const parsed = type === "number" ? Number(value) : value;
-    setProduct({ ...product, [name]: parsed });
+
+    setProduct(prevProduct => {
+      const updatedProduct = { ...prevProduct, [name]: parsed };
+      if (name === "price" || name === "actualprice") {
+        updatedProduct.profit = updatedProduct.price - updatedProduct.actualprice;
+      }
+      return updatedProduct;
+    });
   };
 
   return (
@@ -334,14 +341,15 @@ export default function Addproduct() {
                       className="form-control"
                       id="profit"
                       name="profit"
-                      value={product.profit}
-                      onChange={onChange}
+                      value={product.profit.toFixed(2)}
+                      disabled
                       placeholder="0.00"
                       style={{
                         borderRadius: "8px",
                         border: "1px solid #e2e8f0",
                         padding: "12px 16px",
                         fontSize: "0.95rem",
+                        backgroundColor: "#f8f9fa", // Add a background color to indicate it's disabled
                       }}
                     />
                   </div>

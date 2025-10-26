@@ -286,13 +286,17 @@ export default function Product() {
                                   className="form-control"
                                   value={draft.price}
                                   onChange={(e) =>
-                                    setDrafts((prev) => ({
-                                      ...prev,
-                                      [data._id]: {
+                                    setDrafts((prev) => {
+                                      const updatedDraft = {
                                         ...prev[data._id],
                                         price: Number(e.target.value),
-                                      },
-                                    }))
+                                      };
+                                      updatedDraft.profit = updatedDraft.price - updatedDraft.actualprice;
+                                      return {
+                                        ...prev,
+                                        [data._id]: updatedDraft,
+                                      };
+                                    })
                                   }
                                 />
                               ) : (
@@ -309,13 +313,17 @@ export default function Product() {
                                   className="form-control"
                                   value={draft.actualprice}
                                   onChange={(e) =>
-                                    setDrafts((prev) => ({
-                                      ...prev,
-                                      [data._id]: {
+                                    setDrafts((prev) => {
+                                      const updatedDraft = {
                                         ...prev[data._id],
                                         actualprice: Number(e.target.value),
-                                      },
-                                    }))
+                                      };
+                                      updatedDraft.profit = updatedDraft.price - updatedDraft.actualprice;
+                                      return {
+                                        ...prev,
+                                        [data._id]: updatedDraft,
+                                      };
+                                    })
                                   }
                                 />
                               ) : (
@@ -330,7 +338,8 @@ export default function Product() {
                                   type="number"
                                   min="0"
                                   className="form-control"
-                                  value={draft.profit}
+                                  value={draft.profit.toFixed(2)}
+                                  disabled
                                   onChange={(e) =>
                                     setDrafts((prev) => ({
                                       ...prev,
