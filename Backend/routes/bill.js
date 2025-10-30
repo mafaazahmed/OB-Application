@@ -47,6 +47,7 @@ router.post("/createBill", async (req, res) => {
       profitByCategory,
       profit,
       billDate,
+      customerName,
     } = req.body;
 
     console.log("Creating bill with Order ID:", order_id);
@@ -128,6 +129,7 @@ router.post("/createBill", async (req, res) => {
       profitByCategory,
       profit,
       Date : billDate,
+      customerName,
       kgsSold, // Add calculated kgsSold to the bill
     });
 
@@ -272,6 +274,17 @@ router.post('/checkId', async (req, res) => {
       message: 'Error checking order ID in database',
       error: e.message
     });
+  }
+});
+
+// New route to get unique customer names
+router.get('/customerNames', async (req, res) => {
+  try {
+    const customerNames = await Bill.distinct('customerName');
+    res.json({ success: true, data: customerNames });
+  } catch (error) {
+    console.error('Error fetching unique customer names:', error);
+    res.status(500).json({ success: false, message: 'Error fetching unique customer names' });
   }
 });
 

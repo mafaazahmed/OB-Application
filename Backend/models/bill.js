@@ -76,6 +76,10 @@ const billSchema = new Schema({
         type: String,
         required: true
     },
+    customerName: {
+        type: String,
+        required: true
+    },
     status: {
         type: String,
         enum: ['Pending', 'Cash', 'Online'],

@@ -15,6 +15,9 @@ export default function Bill() {
   // Local storage key for persisting current bill products
   const LS_PRODUCTS_KEY = "current_bill_products_v1";
   const LS_ORDER_ID_KEY = "current_bill_order_id_v1";
+  const [customerName, setCustomerName] = useState("");
+  const [allCustomerNames, setAllCustomerNames] = useState([]);
+  const [customerSuggestions, setCustomerSuggestions] = useState([]);
 
   // const date = new Date();
   // const f = new Intl.DateTimeFormat("en-us", {
@@ -92,6 +95,18 @@ export default function Bill() {
       setProductList(response.data);
     };
     fetchUsers();
+
+    const fetchCustomerNames = async () => {
+      try {
+        const response = await axios.get("/bill/customerNames");
+        if (response.data.success) {
+          setAllCustomerNames(response.data.data);
+        }
+      } catch (error) {
+        console.error("Error fetching customer names:", error);
+      }
+    };
+    fetchCustomerNames();
     // Load persisted products and orderId from localStorage on mount
     try {
       const saved = localStorage.getItem(LS_PRODUCTS_KEY);
@@ -217,6 +232,14 @@ export default function Bill() {
       alert("No products added to generate bill");
       return;
     }
+    if (!customerName) {
+      alert("Customer Name cannot be empty");
+      return;
+    }
+    // if (!discount || Number(discount) === 0) {
+    //   alert("Delivery Charge cannot be empty or zero");
+    //   return;
+    // }
 
     try {
       // ✅ Calculate product-level profit and aggregate profit by category
@@ -253,6 +276,7 @@ export default function Bill() {
         profitByCategory,
         profit: Math.round(totalProfit * 100) / 100,
         billDate: formatDateToDDMMYYYY(billDateISO),
+        customerName: customerName,
       };
 
       // ✅ Send to backend
@@ -289,6 +313,7 @@ export default function Bill() {
       setProducts([]);
       setOrderId("");
       setDiscount(0);
+      setCustomerName(""); // Clear customer name after saving
   // reset date to today
   setBillDateISO(new Date().toISOString().slice(0, 10));
       // Clear persisted products and order id
@@ -356,6 +381,54 @@ export default function Bill() {
               ))}
             </ul>
           )}
+          <div className="mt-3" style={{ position: "relative" }}>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Customer Name"
+              value={customerName}
+              onChange={(e) => {
+                setCustomerName(e.target.value);
+                const value = e.target.value;
+                if (value.length > 0) {
+                  setCustomerSuggestions(
+                    allCustomerNames.filter((name) =>
+                      name.toLowerCase().includes(value.toLowerCase())
+                    )
+                  );
+                } else {
+                  setCustomerSuggestions([]);
+                }
+              }}
+              style={{ borderRadius: "8px", border: "1px solid #e2e8f0" }}
+            />
+            {customerSuggestions.length > 0 && (
+              <ul
+                className="list-group mt-1"
+                style={{
+                  borderRadius: "8px",
+                  boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+                  position: "absolute",
+                  zIndex: 1000,
+                  width: "100%",
+                }}
+              >
+                {customerSuggestions.map((name, index) => (
+                  <li
+                    key={index}
+                    className="list-group-item list-group-item-action"
+                    onClick={() => {
+                      setCustomerName(name);
+                      setCustomerSuggestions([]);
+                    }}
+                    style={{ cursor: "pointer" }}
+                  >
+                    {name}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
 
         {/* Billing Table */}

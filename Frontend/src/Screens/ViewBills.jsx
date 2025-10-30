@@ -1032,7 +1032,7 @@ export default function ViewBills() {
                       <div className="card-body p-3">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                           <span style={{ fontWeight: '600', color: '#2d3748', fontSize: '0.9rem' }}>
-                            🧾 {bill.order_id}
+                            🧾 {bill.order_id} {bill.customerName && `— ${bill.customerName}`}
                           </span>
                           <div style={{ textAlign: 'right' }}>
                             <div style={{ fontWeight: '700', color: '#38a169', fontSize: '1rem' }}>(&#8377;){billTotal.toFixed(2)}</div>
