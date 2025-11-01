@@ -40,6 +40,11 @@ const billSchema = new Schema({
         type: Number,
         required: true
     },
+    processingFee: {
+        type: Number,
+        required: false,
+        default: 0
+    },
     total: {
         type: Number,
         required: true

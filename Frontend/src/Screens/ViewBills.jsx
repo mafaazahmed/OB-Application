@@ -7,6 +7,7 @@ import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 
 export default function ViewBills() {
+  console.log('ViewBills component rendered');
   const [products, setProducts] = useState([]);
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
@@ -45,6 +46,7 @@ export default function ViewBills() {
         const response = await axios.get("/bill/show");
         if (response.data.success) {
           setBillsList(response.data.data);
+          console.log('Bills fetched:', response.data.data);
         } else {
           console.error('Error fetching bills:', response.data.message);
           alert('Error fetching bills: ' + response.data.message);
@@ -353,7 +355,8 @@ export default function ViewBills() {
   // Total Quantity should count number of product lines (not sum of quantities)
   const totalQuantity = currentProducts.length;
   const deliveryCharge = Number(selectedBill?.deliveryCharge || 0);
-  const total = subtotal + deliveryCharge;
+  const processingFee = Number(selectedBill?.processingFee || 0); // Get processing fee
+  const total = subtotal + deliveryCharge + processingFee; // Include processing fee in total
 
   // Profit calculations based on per-unit profit field on each product
   const profitMap = {};
@@ -418,7 +421,7 @@ export default function ViewBills() {
     return currentMonthBills.reduce((total, bill) => {
       const billTotal =
         bill.products.reduce((sum, p) => sum + p.price * p.quantity, 0) +
-        (bill.deliveryCharge || 0);
+        (bill.deliveryCharge || 0) + (bill.processingFee || 0); // Include processingFee
       return total + billTotal;
     }, 0);
   };
@@ -565,6 +568,22 @@ export default function ViewBills() {
     return monthlyBills.reduce((s, b) => s + (Number(b.deliveryCharge) || 0), 0);
   };
 
+  // Get total processing fee for selected month
+  const getSelectedMonthProcessingFee = () => {
+    const month = selectedMonth || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+    const monthlyBills = bills.filter(bill => {
+      const dateParts = (bill.Date || '').split('/');
+      if (dateParts.length !== 3) return false;
+      const day = parseInt(dateParts[0], 10);
+      const monthNum = parseInt(dateParts[1], 10);
+      const year = parseInt(dateParts[2], 10);
+      const billYearMonth = `${year}-${String(monthNum).padStart(2, '0')}`;
+      return billYearMonth === month;
+    });
+
+    return monthlyBills.reduce((s, b) => s + (Number(b.processingFee) || 0), 0);
+  };
+
   // Get aggregated profitByCategory for selected month (returns array)
   const getSelectedMonthProfitByCategory = () => {
     const month = selectedMonth || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
@@ -635,7 +654,7 @@ export default function ViewBills() {
   const totalTurnover = displayedBills.reduce((total, bill) => {
     const billTotal =
       bill.products.reduce((sum, p) => sum + p.price * p.quantity, 0) +
-      (bill.deliveryCharge || 0);
+      (bill.deliveryCharge || 0) + (bill.processingFee || 0);
     return total + billTotal;
   }, 0);
 
@@ -658,7 +677,7 @@ export default function ViewBills() {
     return monthlyBills.reduce((total, bill) => {
       const billTotal =
         bill.products.reduce((sum, p) => sum + p.price * p.quantity, 0) +
-        (bill.deliveryCharge || 0);
+        (bill.deliveryCharge || 0) + (bill.processingFee || 0); // Include processingFee
       return total + billTotal;
     }, 0);
   };
@@ -740,6 +759,14 @@ export default function ViewBills() {
               </div>
             </div>
 
+            {/* Delivery Charges and Processing Fee (always displayed) */}
+            <div style={{ marginTop: 10, fontSize: '0.95rem', color: '#2f855a' }}>
+              <strong>Delivery Charges:</strong> ₹{(Number(getSelectedMonthDeliveryCharges()) || 0).toFixed(2)}
+            </div>
+            <div style={{ marginTop: 10, fontSize: '0.95rem', color: '#2f855a' }}>
+              <strong>Processing Fee:</strong> ₹{(Number(getSelectedMonthProcessingFee()) || 0).toFixed(2)}
+            </div>
+
             {/* Profit by category: single-line, scrollable */}
             {monthProfitByCategory.length > 0 && (
               <div style={{ marginTop: '10px' }}>
@@ -751,9 +778,6 @@ export default function ViewBills() {
                         {c.category}: ₹{c.amount.toFixed(2)}
                       </div>
                     ))}
-                  </div>
-                  <div style={{ marginTop: 10, fontSize: '0.95rem', color: '#2f855a' }}>
-                    <strong>Delivery Charges:</strong> ₹{getSelectedMonthDeliveryCharges().toFixed(2)}
                   </div>
                 </div>
               </div>
@@ -958,6 +982,10 @@ export default function ViewBills() {
               <strong>Daily Turnover:</strong> (&#8377;){totalTurnover.toFixed(2)}
               <br />
               <strong>Profit:</strong> (&#8377;){displayedBills.reduce((s,b) => s + computeBillProfit(b).totalProfit, 0).toFixed(2)}
+              <br />
+              <strong>Delivery Charges:</strong> (&#8377;){displayedBills.reduce((s,b) => s + (Number(b.deliveryCharge)||0), 0).toFixed(2)}
+              <br />
+              <strong>Processing Fee:</strong> (&#8377;){displayedBills.reduce((s,b) => s + (Number(b.processingFee)||0), 0).toFixed(2)}
               {displayedProfitByCategory.length > 0 && (
                 <div style={{ marginTop: '8px', width: '100%' }}>
                   <div style={{ fontWeight: 700, color: '#22543d', marginBottom: 6 }}>Profit by Category</div>
@@ -1006,7 +1034,7 @@ export default function ViewBills() {
                 {displayedBills.map((bill, index) => {
                   const billTotal =
                     bill.products.reduce((sum, p) => sum + p.price * p.quantity, 0) +
-                    (bill.deliveryCharge || 0);
+                    (bill.deliveryCharge || 0) + (bill.processingFee || 0); // Include processingFee here
                   const { totalProfit } = computeBillProfit(bill);
                   return (
                     <div
@@ -1084,6 +1112,9 @@ export default function ViewBills() {
                             💰 {bill.deliveryCharge} delivery charge
                           </div>
                         )}
+                        <div style={{ color: '#e53e3e', fontSize: '0.85rem', fontWeight: '500' }}>
+                            ⚙️ {bill.processingFee} processing fee
+                          </div>
                       </div>
                     </div>
                   );
@@ -1098,7 +1129,7 @@ export default function ViewBills() {
               {suggestions.map((item, index) => {
                 const itemTotal =
                   item.products.reduce((sum, p) => sum + p.price * p.quantity, 0) +
-                  (item.deliveryCharge || 0);
+                  (item.deliveryCharge || 0) + (item.processingFee || 0); // Include processingFee
                 return (
               <li
                 key={index}
@@ -1284,10 +1315,12 @@ export default function ViewBills() {
         <table className="table" style={{ borderRadius: '8px', overflow: 'hidden' }} >
           <thead style={{ background: '#f7fafc', borderBottom: '2px solid #e2e8f0' }}>
             <tr>
-              <th style={{ width: '65%', fontWeight: 600, color: '#2d3748' }}>Product</th>
-              <th style={{ width: '11.67%', fontWeight: 600, color: '#2d3748' }}>Quantity</th>
-              <th style={{ width: '11.67%', fontWeight: 600, color: '#2d3748' }}>Price (&#8377;)</th>
-              <th style={{ width: '11.67%', fontWeight: 600, color: '#2d3748' }}>Total</th>
+              <th style={{ width: '50%', fontWeight: 600, color: '#2d3748' }}>Product</th>
+              <th style={{ width: '10%', fontWeight: 600, color: '#2d3748' }}>Quantity</th>
+              <th style={{ width: '10%', fontWeight: 600, color: '#2d3748' }}>Price (&#8377;)</th>
+              <th style={{ width: '10%', fontWeight: 600, color: '#2d3748' }}>Delivery Chrg (&#8377;)</th>
+              <th style={{ width: '10%', fontWeight: 600, color: '#2d3748' }}>Proc. Fee (&#8377;)</th>
+              <th style={{ width: '10%', fontWeight: 600, color: '#2d3748' }}>Total (&#8377;)</th>
             </tr>
           </thead>
           <tbody>
@@ -1322,7 +1355,9 @@ export default function ViewBills() {
                     style={{ border: 'none', background: 'transparent', fontWeight: 500 }}
                   />
                 </td>
-                      <td style={{ fontWeight: 600, color: '#2d3748' }}>&#8377; {(p.price * p.quantity).toFixed(2)}</td>
+                <td style={{ fontWeight: 600, color: '#2d3748' }}>&#8377; {deliveryCharge.toFixed(2)}</td>
+                <td style={{ fontWeight: 600, color: '#2d3748' }}>&#8377; {processingFee.toFixed(2)}</td>
+                <td style={{ fontWeight: 600, color: '#2d3748' }}>&#8377; {(p.price * p.quantity + deliveryCharge + processingFee).toFixed(2)}</td>
                 {/* remove button hidden in view-only mode */}
               </tr>
             ))}
@@ -1348,6 +1383,19 @@ export default function ViewBills() {
                 type="number"
                 className="discount-input"
                 value={deliveryCharge}
+                readOnly
+                disabled
+              />
+            </div>
+          </div>
+          <div className="totals-row">
+            <span className="totals-label">Processing Fee :</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontWeight: 600, color: '#4a5568' }}>&#8377;</span>
+              <input
+                type="number"
+                className="discount-input"
+                value={processingFee}
                 readOnly
                 disabled
               />

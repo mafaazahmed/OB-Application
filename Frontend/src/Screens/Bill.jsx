@@ -11,6 +11,7 @@ export default function Bill() {
   const [products, setProducts] = useState([]);
   const [orderId, setOrderId] = useState("");
   const [discount, setDiscount] = useState(0);
+  const [processingFee, setProcessingFee] = useState(3); // New state for processing fee
   const [billDateISO, setBillDateISO] = useState(new Date().toISOString().slice(0, 10));
   // Local storage key for persisting current bill products
   const LS_PRODUCTS_KEY = "current_bill_products_v1";
@@ -82,7 +83,7 @@ export default function Bill() {
       setDiscount(e.target.value);
     }
   };
-  let calDis = subtotal + Number(discount);
+  let calDis = subtotal + Number(discount) + Number(processingFee); // Include processingFee in calculation
   const total = calDis;
 
   const printInvoice = async () => {
@@ -146,6 +147,21 @@ export default function Bill() {
       // ignore
     }
   }, [orderId]);
+
+  // Effect to handle processing fee based on billDateISO
+  useEffect(() => {
+    const billDate = new Date(billDateISO);
+    const year = billDate.getFullYear();
+    const month = billDate.getMonth(); // 0-indexed
+
+    if (year === 2025 && month === 9) { // October is month 9 (0-indexed)
+      setProcessingFee(0);
+    } else {
+      // You might want to reset it to its default or a user-set value if the date changes
+      // For now, we'll keep it as is if not October 2025
+      // setProcessingFee(3); // Uncomment if you want to reset to default 3 outside of Oct 2025
+    }
+  }, [billDateISO]); // Rerun when billDateISO changes
 
   const handleSearchChange = (e) => {
     const value = e.target.value;
@@ -272,6 +288,7 @@ export default function Bill() {
         order_id: orderId.toUpperCase(),
         products: productsWithProfit,
         deliveryCharge: discount,
+        processingFee: processingFee, // Add processingFee to the bill object
         total,
         profitByCategory,
         profit: Math.round(totalProfit * 100) / 100,
@@ -313,6 +330,7 @@ export default function Bill() {
       setProducts([]);
       setOrderId("");
       setDiscount(0);
+      setProcessingFee(3); // Reset processing fee to default
       setCustomerName(""); // Clear customer name after saving
   // reset date to today
   setBillDateISO(new Date().toISOString().slice(0, 10));
@@ -653,6 +671,24 @@ export default function Bill() {
                 />
               </div>
             </div>
+            {!(new Date(billDateISO).getFullYear() === 2025 && new Date(billDateISO).getMonth() === 9) && (
+              <div className="totals-row">
+                <span className="totals-label">Processing Fee :</span>
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                >
+                  <span style={{ fontWeight: 600, color: "#4a5568" }}>
+                    &#8377;
+                  </span>
+                  <input
+                    type="number"
+                    onChange={(e) => setProcessingFee(Number(e.target.value))}
+                    className="discount-input"
+                    value={processingFee}
+                  />
+                </div>
+              </div>
+            )}
             <div className="totals-row total-row">
               <span className="totals-label">Total :</span>
               <span className="total-value">&#8377; {total}</span>

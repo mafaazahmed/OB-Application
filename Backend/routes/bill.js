@@ -43,6 +43,7 @@ router.post("/createBill", async (req, res) => {
       order_id,
       products,
       deliveryCharge = 0,
+      processingFee = 3, // Add processingFee with default value
       total,
       profitByCategory,
       profit,
@@ -125,6 +126,7 @@ router.post("/createBill", async (req, res) => {
       order_id,
       products: products.map(p => ({ ...p, size: p.size || "1kg" })), // Ensure size is stored in bill products
       deliveryCharge,
+      processingFee,
       total,
       profitByCategory,
       profit,
