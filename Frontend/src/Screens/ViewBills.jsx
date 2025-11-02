@@ -1315,11 +1315,9 @@ export default function ViewBills() {
         <table className="table" style={{ borderRadius: '8px', overflow: 'hidden' }} >
           <thead style={{ background: '#f7fafc', borderBottom: '2px solid #e2e8f0' }}>
             <tr>
-              <th style={{ width: '50%', fontWeight: 600, color: '#2d3748' }}>Product</th>
-              <th style={{ width: '10%', fontWeight: 600, color: '#2d3748' }}>Quantity</th>
-              <th style={{ width: '10%', fontWeight: 600, color: '#2d3748' }}>Price (&#8377;)</th>
-              <th style={{ width: '10%', fontWeight: 600, color: '#2d3748' }}>Delivery Chrg (&#8377;)</th>
-              <th style={{ width: '10%', fontWeight: 600, color: '#2d3748' }}>Proc. Fee (&#8377;)</th>
+              <th style={{ width: '60%', fontWeight: 600, color: '#2d3748' }}>Product</th>
+              <th style={{ width: '15%', fontWeight: 600, color: '#2d3748' }}>Quantity</th>
+              <th style={{ width: '15%', fontWeight: 600, color: '#2d3748' }}>Price (&#8377;)</th>
               <th style={{ width: '10%', fontWeight: 600, color: '#2d3748' }}>Total (&#8377;)</th>
             </tr>
           </thead>
@@ -1355,9 +1353,7 @@ export default function ViewBills() {
                     style={{ border: 'none', background: 'transparent', fontWeight: 500 }}
                   />
                 </td>
-                <td style={{ fontWeight: 600, color: '#2d3748' }}>&#8377; {deliveryCharge.toFixed(2)}</td>
-                <td style={{ fontWeight: 600, color: '#2d3748' }}>&#8377; {processingFee.toFixed(2)}</td>
-                <td style={{ fontWeight: 600, color: '#2d3748' }}>&#8377; {(p.price * p.quantity + deliveryCharge + processingFee).toFixed(2)}</td>
+                <td style={{ fontWeight: 600, color: '#2d3748' }}>&#8377; {(p.price * p.quantity).toFixed(2)}</td>
                 {/* remove button hidden in view-only mode */}
               </tr>
             ))}
