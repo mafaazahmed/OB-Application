@@ -13,6 +13,19 @@ router.get("/show", async (req, res) => {
   }
 });
 
+// ✅ Return names of products in the 'Vegetable' category
+router.get("/vegetables", async (req, res) => {
+  try {
+    // Case-insensitive match for category 'Vegetable' or 'vegetable'
+    const vegProducts = await Product.find({ category: { $regex: /^vegetable$/i } });
+    const names = vegProducts.map(p => p.name);
+    res.json({ success: true, data: names });
+  } catch (error) {
+    console.error('Error fetching vegetable products:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // ✅ Add product
 router.post("/add", async (req, res) => {
   try {

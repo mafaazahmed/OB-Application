@@ -12,6 +12,7 @@ export default function ViewBills() {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [bills, setBillsList] = useState([]);
+  const [vegProducts, setVegProducts] = useState([]); // array of vegetable product names from backend
   const [selectedBill, setSelectedBill] = useState(null);
   const [displayedBills, setDisplayedBills] = useState([]);
   const [dateFilteredBills, setDateFilteredBills] = useState([]); // bills filtered by date/range
@@ -57,6 +58,20 @@ export default function ViewBills() {
       }
     };
     fetchBills();
+    // fetch vegetable product names for turnover calculations
+    const fetchVegProducts = async () => {
+      try {
+        const resp = await axios.get('/product/vegetables');
+        if (resp.data && resp.data.success) {
+          setVegProducts(Array.isArray(resp.data.data) ? resp.data.data : []);
+        } else {
+          console.warn('Could not fetch vegetable products', resp.data?.message);
+        }
+      } catch (err) {
+        console.error('Error fetching vegetable products', err);
+      }
+    };
+    fetchVegProducts();
     // view-only: no product list fetch required here
   }, []);
 
@@ -584,6 +599,44 @@ export default function ViewBills() {
     return monthlyBills.reduce((s, b) => s + (Number(b.processingFee) || 0), 0);
   };
 
+  // Get vegetable turnover for a single bill by matching product names
+  // Strict matching: case-insensitive, collapses multiple spaces, but preserves punctuation.
+  // Example: 'Tomato 1kg' == 'tomato 1kg' but != 'Tomato 1kg.'
+  const getBillVegetableTurnover = (bill) => {
+    if (!bill || !Array.isArray(bill.products) || !vegProducts || vegProducts.length === 0) return 0;
+    const normalize = (s) => (s || '')
+      .toString()
+      .replace(/\s+/g, ' ')
+      .toLowerCase()
+      .trim();
+
+    // build a set of normalized vegetable names for fast exact comparisons
+    const vegSet = new Set(vegProducts.map(v => normalize(v)).filter(v => v));
+
+    return bill.products.reduce((sum, p) => {
+      const pname = normalize(p.name);
+      const isVeg = vegSet.has(pname);
+      if (isVeg) return sum + ((Number(p.price) || 0) * (Number(p.quantity) || 0));
+      return sum;
+    }, 0);
+  };
+
+  // Get total vegetable turnover for selected month
+  const getSelectedMonthVegetableTurnover = () => {
+    const month = selectedMonth || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+    const monthlyBills = bills.filter(bill => {
+      const dateParts = (bill.Date || '').split('/');
+      if (dateParts.length !== 3) return false;
+      const day = parseInt(dateParts[0], 10);
+      const monthNum = parseInt(dateParts[1], 10);
+      const year = parseInt(dateParts[2], 10);
+      const billYearMonth = `${year}-${String(monthNum).padStart(2, '0')}`;
+      return billYearMonth === month;
+    });
+
+    return monthlyBills.reduce((s, b) => s + getBillVegetableTurnover(b), 0);
+  };
+
   // Get aggregated profitByCategory for selected month (returns array)
   const getSelectedMonthProfitByCategory = () => {
     const month = selectedMonth || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
@@ -765,6 +818,9 @@ export default function ViewBills() {
             </div>
             <div style={{ marginTop: 10, fontSize: '0.95rem', color: '#2f855a' }}>
               <strong>Processing Fee:</strong> ₹{(Number(getSelectedMonthProcessingFee()) || 0).toFixed(2)}
+            </div>
+            <div style={{ marginTop: 10, fontSize: '0.95rem', color: '#2f855a' }}>
+              <strong>Vegetable Turnover:</strong> ₹{(Number(getSelectedMonthVegetableTurnover()) || 0).toFixed(2)}
             </div>
 
             {/* Profit by category: single-line, scrollable */}
@@ -986,6 +1042,8 @@ export default function ViewBills() {
               <strong>Delivery Charges:</strong> (&#8377;){displayedBills.reduce((s,b) => s + (Number(b.deliveryCharge)||0), 0).toFixed(2)}
               <br />
               <strong>Processing Fee:</strong> (&#8377;){displayedBills.reduce((s,b) => s + (Number(b.processingFee)||0), 0).toFixed(2)}
+              <br />
+              <strong>Vegetable Turnover:</strong> (&#8377;){displayedBills.reduce((s,b) => s + getBillVegetableTurnover(b), 0).toFixed(2)}
               {displayedProfitByCategory.length > 0 && (
                 <div style={{ marginTop: '8px', width: '100%' }}>
                   <div style={{ fontWeight: 700, color: '#22543d', marginBottom: 6 }}>Profit by Category</div>
@@ -1036,6 +1094,7 @@ export default function ViewBills() {
                     bill.products.reduce((sum, p) => sum + p.price * p.quantity, 0) +
                     (bill.deliveryCharge || 0) + (bill.processingFee || 0); // Include processingFee here
                   const { totalProfit } = computeBillProfit(bill);
+                  const vegTurn = getBillVegetableTurnover(bill);
                   return (
                     <div
                       key={index}
@@ -1107,12 +1166,17 @@ export default function ViewBills() {
                         }}>
                           📋 {bill.status || 'Pending'}
                         </div>
+                        {vegTurn > 0 && (
+                          <div style={{ marginTop: '6px', color: '#2f855a', fontSize: '0.85rem', fontWeight: '500' }}>
+                            🥬 Vegetable Turnover: ₹{vegTurn.toFixed(2)}
+                          </div>
+                        )}
                         {bill.deliveryCharge > 0 && (
-                          <div style={{ color: '#e53e3e', fontSize: '0.85rem', fontWeight: '500' }}>
+                          <div style={{ color: '#38a169', fontSize: '0.85rem', fontWeight: '500' }}>
                             💰 {bill.deliveryCharge} delivery charge
                           </div>
                         )}
-                        <div style={{ color: '#e53e3e', fontSize: '0.85rem', fontWeight: '500' }}>
+                        <div style={{ color: '#38a169', fontSize: '0.85rem', fontWeight: '500' }}>
                             ⚙️ {bill.processingFee} processing fee
                           </div>
                       </div>
