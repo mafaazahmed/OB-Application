@@ -237,7 +237,7 @@ export default function Bill() {
   };
 
  useEffect(() => {
-  if (orderId.trim() !== "" && (orderId.length === 4 || orderId.length === 5)) {
+  if (orderId.trim() !== "" && orderId.length === 5) {
     checkId();
   }
 }, [orderId]);
