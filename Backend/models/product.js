@@ -14,7 +14,7 @@ const productSchema = new Schema ({
     category : {
         type : String,
         required : true,
-        enum: ['Vegetable', 'Chicken', 'Beef', 'Mutton', 'Other', 'Chicken Boneless', 'Live Chicken', 'Nati Chicken', 'Special Chicken', 'Beef Boneless', 'Mutton Boneless']
+        enum: ['Vegetable', 'Other Vegetable', 'Chicken', 'Beef', 'Mutton', 'Other', 'Chicken Boneless', 'Live Chicken', 'Nati Chicken', 'Special Chicken', 'Beef Boneless', 'Mutton Boneless']
     },
     profit :  {
         type : Number,

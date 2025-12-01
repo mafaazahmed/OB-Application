@@ -249,6 +249,7 @@ export default function Product() {
                                   }
                                 >
                                   <option value="Vegetable">Vegetable</option>
+                                  <option value="Other Vegetable">Other Vegetable</option>
                                   <option value="Chicken">Chicken</option>
                                   <option value="Beef">Beef</option>
                                   <option value="Mutton">Mutton</option>

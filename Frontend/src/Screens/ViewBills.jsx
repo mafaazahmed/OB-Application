@@ -486,63 +486,26 @@ export default function ViewBills() {
     return { totalProfit, profitByCategoryMap: categoryMap };
   };
 
-  // Helper function for kg calculation (ported from Backend/test-kgs-calculation.js)
+  // Helper function for kg calculation: reads exact kgsSold array from bill
   const calculateKgs = (billObject) => {
-    let chickenKgs = 0;
-    let beefKgs = 0;
-    let muttonKgs = 0;
+    const kgsMap = {};
+    let totalKgs = 0;
 
-    // Regex to extract common size patterns (e.g., "1/2", "1.5", "200") and their units ("kg" or "gm")
-    const sizeRegex = /((\d{1,2}\/\d{1,2})|(\d+(\.\d+)?))\s*(kg|gm)/i;
-
-    const convertToKgs = (numericPart, unit) => {
-      unit = unit.toLowerCase().trim();
-      if (unit === 'kg') {
-        if (numericPart.includes('/')) {
-          const parts = numericPart.split('/');
-          return parseFloat(parts[0]) / parseFloat(parts[1]);
-        }
-        return parseFloat(numericPart);
-      } else if (unit === 'gm') {
-        return parseFloat(numericPart) / 1000;
-      }
-      return 0;
-    };
-
-    billObject.products.forEach(product => {
-      const productName = product.name.toLowerCase();
-      const quantity = Number(product.quantity) || 0;
-
-      const sizeMatch = productName.match(sizeRegex);
-
-      if (sizeMatch) {
-        const numericPart = sizeMatch[2] || sizeMatch[3]; // Corrected: Group 3 for decimal/integer
-        const unit = sizeMatch[5]; // Corrected: Group 5 for unit
-
-        const kgs = convertToKgs(numericPart, unit) * quantity;
-
-        if (productName.includes('chicken')) {
-          chickenKgs += kgs;
-        } else if (productName.includes('beef')) {
-          beefKgs += kgs;
-        } else if (productName.includes('mutton')) {
-          if (productName.includes('ghat kaliji')) {
-            return;
-          }
-          muttonKgs += kgs;
-        }
-      }
-    });
-
-    chickenKgs = Math.round(chickenKgs * 100) / 100;
-    beefKgs = Math.round(beefKgs * 100) / 100;
-    muttonKgs = Math.round(muttonKgs * 100) / 100;
+    // Read exact kgs from bill's kgsSold array
+    if (Array.isArray(billObject.kgsSold)) {
+      billObject.kgsSold.forEach(item => {
+        const cat = (item.category || '').toLowerCase();
+        const kg = Number(item.kg) || 0;
+        kgsMap[cat] = (kgsMap[cat] || 0) + kg;
+        totalKgs += kg;
+      });
+    }
 
     return {
-      chickenKgs,
-      beefKgs,
-      muttonKgs,
-      totalKgs: Math.round((chickenKgs + beefKgs + muttonKgs) * 100) / 100
+      chickenKgs: kgsMap.chicken || 0,
+      beefKgs: kgsMap.beef || 0,
+      muttonKgs: kgsMap.mutton || 0,
+      totalKgs: Math.round(totalKgs * 100) / 100
     };
   };
 
@@ -674,26 +637,25 @@ export default function ViewBills() {
       return billYearMonth === month;
     });
 
-    let chickenKgs = 0;
-    let beefKgs = 0;
-    let muttonKgs = 0;
+    const kgsMap = {};
+    let totalKgs = 0;
 
     monthlyBills.forEach(bill => {
-      const { chickenKgs: billChicken, beefKgs: billBeef, muttonKgs: billMutton } = calculateKgs(bill);
-      chickenKgs += billChicken;
-      beefKgs += billBeef;
-      muttonKgs += billMutton;
+      if (Array.isArray(bill.kgsSold)) {
+        bill.kgsSold.forEach(item => {
+          const cat = (item.category || '').toLowerCase();
+          const kg = Number(item.kg) || 0;
+          kgsMap[cat] = (kgsMap[cat] || 0) + kg;
+          totalKgs += kg;
+        });
+      }
     });
 
-    chickenKgs = Math.round(chickenKgs * 100) / 100;
-    beefKgs = Math.round(beefKgs * 100) / 100;
-    muttonKgs = Math.round(muttonKgs * 100) / 100;
-
     return {
-      chickenKgs,
-      beefKgs,
-      muttonKgs,
-      totalKgs: Math.round((chickenKgs + beefKgs + muttonKgs) * 100) / 100
+      chickenKgs: kgsMap.chicken || 0,
+      beefKgs: kgsMap.beef || 0,
+      muttonKgs: kgsMap.mutton || 0,
+      totalKgs: Math.round(totalKgs * 100) / 100
     };
   };
 
@@ -755,26 +717,25 @@ export default function ViewBills() {
 
   // Memoized kgs for currently displayed bills
   const displayedKgs = useMemo(() => {
-    let chickenKgs = 0;
-    let beefKgs = 0;
-    let muttonKgs = 0;
+    const kgsMap = {};
+    let totalKgs = 0;
 
     (displayedBills || []).forEach(bill => {
-      const { chickenKgs: billChicken, beefKgs: billBeef, muttonKgs: billMutton } = calculateKgs(bill);
-      chickenKgs += billChicken;
-      beefKgs += billBeef;
-      muttonKgs += billMutton;
+      if (Array.isArray(bill.kgsSold)) {
+        bill.kgsSold.forEach(item => {
+          const cat = (item.category || '').toLowerCase();
+          const kg = Number(item.kg) || 0;
+          kgsMap[cat] = (kgsMap[cat] || 0) + kg;
+          totalKgs += kg;
+        });
+      }
     });
 
-    chickenKgs = Math.round(chickenKgs * 100) / 100;
-    beefKgs = Math.round(beefKgs * 100) / 100;
-    muttonKgs = Math.round(muttonKgs * 100) / 100;
-
     return {
-      chickenKgs,
-      beefKgs,
-      muttonKgs,
-      totalKgs: Math.round((chickenKgs + beefKgs + muttonKgs) * 100) / 100
+      chickenKgs: kgsMap.chicken || 0,
+      beefKgs: kgsMap.beef || 0,
+      muttonKgs: kgsMap.mutton || 0,
+      totalKgs: Math.round(totalKgs * 100) / 100
     };
   }, [displayedBills]);
 
